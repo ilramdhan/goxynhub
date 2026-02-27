@@ -2,9 +2,11 @@ package middleware
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"io"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -107,8 +109,11 @@ func AuditLogger(compRepo repository.ComponentRepository, logger zerolog.Logger)
 		}
 
 		// Save audit log asynchronously to not block response
+		// Use background context since request context may be cancelled
 		go func() {
-			if err := compRepo.CreateAuditLog(c.Request.Context(), log); err != nil {
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			if err := compRepo.CreateAuditLog(ctx, log); err != nil {
 				logger.Error().Err(err).Msg("failed to create audit log")
 			}
 		}()

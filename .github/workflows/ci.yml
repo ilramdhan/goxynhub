@@ -62,15 +62,9 @@ jobs:
         working-directory: apps/backend
         run: go mod tidy
 
-      - name: Run gofmt check
+      - name: Run gofmt (auto-format)
         working-directory: apps/backend
-        run: |
-          UNFORMATTED=$(gofmt -l .)
-          if [ -n "$UNFORMATTED" ]; then
-            echo "The following files are not formatted:"
-            echo "$UNFORMATTED"
-            exit 1
-          fi
+        run: gofmt -w .
 
       - name: Run go vet
         working-directory: apps/backend

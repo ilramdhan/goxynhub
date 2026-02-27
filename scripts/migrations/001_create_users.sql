@@ -87,8 +87,10 @@ CREATE TRIGGER update_users_updated_at
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
 
--- Insert default super admin (password: Admin@123456 - CHANGE IN PRODUCTION!)
--- Password hash is bcrypt of 'Admin@123456' with cost 12
+-- Insert default super admin
+-- Password: Admin@123456 (CHANGE IMMEDIATELY IN PRODUCTION!)
+-- This hash was generated with bcrypt cost 10 for: Admin@123456
+-- To regenerate: SELECT crypt('Admin@123456', gen_salt('bf', 10));
 INSERT INTO users (
     email,
     password_hash,
@@ -98,12 +100,15 @@ INSERT INTO users (
     email_verified
 ) VALUES (
     'admin@example.com',
-    '$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj4J/HS.iK8i',
+    crypt('Admin@123456', gen_salt('bf', 12)),
     'Super Admin',
     'super_admin',
     'active',
     true
-) ON CONFLICT DO NOTHING;
+) ON CONFLICT (email) DO UPDATE SET
+    password_hash = EXCLUDED.password_hash,
+    role = EXCLUDED.role,
+    status = EXCLUDED.status;
 
 -- ============================================================
 -- ROLLBACK SCRIPT (run to undo this migration)

@@ -33,31 +33,27 @@ func (h *SiteHandler) GetPublicSite(c *gin.Context) {
 		slug = "default"
 	}
 
-	site, err := h.siteService.GetSiteWithSettings(c.Request.Context(), uuid.Nil, true)
+	// Find site by slug
+	siteBySlug, err := h.siteService.GetSiteBySlug(c.Request.Context(), slug)
 	if err != nil {
-		// Try by slug
-		siteBySlug, slugErr := h.siteService.GetSiteBySlug(c.Request.Context(), slug)
-		if slugErr != nil {
-			if errors.Is(slugErr, domain.ErrNotFound) {
-				response.NotFound(c, "site not found")
-				return
-			}
-			h.logger.Error().Err(slugErr).Msg("get public site error")
-			response.InternalError(c, slugErr)
+		if errors.Is(err, domain.ErrNotFound) {
+			response.NotFound(c, "site not found")
 			return
 		}
-
-		// Get with public settings
-		siteWithSettings, settingsErr := h.siteService.GetSiteWithSettings(c.Request.Context(), siteBySlug.ID, true)
-		if settingsErr != nil {
-			response.OK(c, siteBySlug)
-			return
-		}
-		response.OK(c, siteWithSettings)
+		h.logger.Error().Err(err).Str("slug", slug).Msg("get public site error")
+		response.InternalError(c, err)
 		return
 	}
 
-	response.OK(c, site)
+	// Get with public settings only
+	siteWithSettings, err := h.siteService.GetSiteWithSettings(c.Request.Context(), siteBySlug.ID, true)
+	if err != nil {
+		// Return site without settings if settings fetch fails
+		response.OK(c, siteBySlug)
+		return
+	}
+
+	response.OK(c, siteWithSettings)
 }
 
 // GetPublicSiteByID handles GET /api/v1/public/sites/:id

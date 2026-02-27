@@ -6,6 +6,7 @@ import {
   getPublicPricingPlans,
   getPublicFAQs,
   getPublicNavigation,
+  getPublicSite,
 } from "@/lib/api/public.api";
 import { contentsToMap, getContentValue } from "@/types/api.types";
 import { HeroSection } from "@/components/landing/HeroSection";
@@ -126,22 +127,35 @@ function renderSection(props: SectionProps) {
 }
 
 export default async function HomePage() {
-  // Fetch all data in parallel
-  const [page, features, testimonials, pricingPlans, faqs, navigation] = await Promise.allSettled([
-    getPublicPage(SITE_ID),
-    getPublicFeatures(SITE_ID),
-    getPublicTestimonials(SITE_ID),
-    getPublicPricingPlans(SITE_ID),
-    getPublicFAQs(SITE_ID),
-    getPublicNavigation(SITE_ID, "header"),
-  ]);
+  // Fetch all data in parallel for optimal performance
+  const [page, features, testimonials, pricingPlans, faqs, headerNav, footerNav, site] =
+    await Promise.allSettled([
+      getPublicPage(SITE_ID),
+      getPublicFeatures(SITE_ID),
+      getPublicTestimonials(SITE_ID),
+      getPublicPricingPlans(SITE_ID),
+      getPublicFAQs(SITE_ID),
+      getPublicNavigation(SITE_ID, "header"),
+      getPublicNavigation(SITE_ID, "footer"),
+      getPublicSite(SITE_ID),
+    ]);
 
   const pageData = page.status === "fulfilled" ? page.value : null;
   const featuresData = features.status === "fulfilled" ? features.value : [];
   const testimonialsData = testimonials.status === "fulfilled" ? testimonials.value : [];
   const pricingData = pricingPlans.status === "fulfilled" ? pricingPlans.value : [];
   const faqsData = faqs.status === "fulfilled" ? faqs.value : [];
-  const navData = navigation.status === "fulfilled" ? navigation.value : null;
+  const navData = headerNav.status === "fulfilled" ? headerNav.value : null;
+  const footerNavData = footerNav.status === "fulfilled" ? footerNav.value : null;
+  const siteData = site.status === "fulfilled" ? site.value : null;
+
+  // Convert site settings to map for easy access
+  const settingsMap: Record<string, string> = {};
+  if (siteData?.settings) {
+    siteData.settings.forEach((s) => {
+      if (s.value) settingsMap[s.key] = s.value;
+    });
+  }
 
   if (!pageData) {
     return (
@@ -186,7 +200,11 @@ export default async function HomePage() {
         })}
       </main>
 
-      <SiteFooter siteId={SITE_ID} />
+      <SiteFooter
+        siteId={SITE_ID}
+        footerNavigation={footerNavData}
+        settings={settingsMap}
+      />
     </>
   );
 }

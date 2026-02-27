@@ -1,8 +1,10 @@
-import type { NextConfig } from "next";
-
-const nextConfig: NextConfig = {
+/** @type {import('next').NextConfig} */
+const nextConfig = {
   // Enable React strict mode for better development experience
   reactStrictMode: true,
+
+  // Enable standalone output for Docker deployment
+  output: "standalone",
 
   // Image optimization configuration
   images: {
@@ -74,7 +76,6 @@ const nextConfig: NextConfig = {
 
   // Experimental features
   experimental: {
-    // Enable server actions
     serverActions: {
       allowedOrigins: ["localhost:3000"],
     },

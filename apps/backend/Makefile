@@ -1,4 +1,4 @@
-.PHONY: run build test lint fmt clean tidy docker-build
+.PHONY: run build test test-coverage lint fmt clean tidy docker-build
 
 # Variables
 APP_NAME=landing-cms-api

@@ -88,6 +88,7 @@ func main() {
 		JWTManager:       jwtManager,
 		Config:           cfg,
 		Logger:           appLogger,
+		DB:               db,
 	}
 	r := router.Setup(deps)
 

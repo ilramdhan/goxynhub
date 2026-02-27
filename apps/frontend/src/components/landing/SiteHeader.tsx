@@ -1,17 +1,33 @@
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
+import type { NavigationMenu, NavigationItem } from "@/types/api.types";
 
 interface SiteHeaderProps {
-  siteId: string;
+  navigation?: NavigationMenu | null;
 }
 
-export function SiteHeader({ siteId }: SiteHeaderProps) {
-  // In production, fetch navigation from API
-  const navItems = [
-    { label: "Features", href: "/#features" },
-    { label: "Pricing", href: "/#pricing" },
-    { label: "FAQ", href: "/#faq" },
-  ];
+const defaultNavItems = [
+  { label: "Features", href: "/#features" },
+  { label: "Pricing", href: "/#pricing" },
+  { label: "FAQ", href: "/#faq" },
+];
+
+export function SiteHeader({ navigation }: SiteHeaderProps) {
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  // Use navigation from CMS if available, otherwise use defaults
+  const navItems =
+    navigation?.items && navigation.items.length > 0
+      ? navigation.items
+          .filter((item) => item.is_active && item.depth === 0)
+          .map((item) => ({
+            label: item.label,
+            href: item.url || "#",
+            target: item.target,
+          }))
+      : defaultNavItems;
 
   return (
     <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-200">
@@ -25,12 +41,13 @@ export function SiteHeader({ siteId }: SiteHeaderProps) {
             <span className="font-bold text-gray-900 text-lg">LandingCMS</span>
           </Link>
 
-          {/* Navigation */}
+          {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-8">
             {navItems.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
+                target={"target" in item ? item.target : "_self"}
                 className="text-gray-600 hover:text-gray-900 font-medium transition-colors"
               >
                 {item.label}
@@ -42,7 +59,7 @@ export function SiteHeader({ siteId }: SiteHeaderProps) {
           <div className="flex items-center gap-4">
             <Link
               href="/admin/login"
-              className="hidden sm:inline-flex text-gray-600 hover:text-gray-900 font-medium transition-colors"
+              className="hidden sm:inline-flex text-gray-600 hover:text-gray-900 font-medium transition-colors text-sm"
             >
               Sign In
             </Link>
@@ -52,8 +69,41 @@ export function SiteHeader({ siteId }: SiteHeaderProps) {
             >
               Get Started
             </Link>
+
+            {/* Mobile menu button */}
+            <button
+              className="md:hidden p-2 text-gray-600 hover:text-gray-900"
+              onClick={() => setMobileOpen(!mobileOpen)}
+            >
+              {mobileOpen ? "✕" : "☰"}
+            </button>
           </div>
         </div>
+
+        {/* Mobile Navigation */}
+        {mobileOpen && (
+          <div className="md:hidden border-t border-gray-200 py-4">
+            <nav className="flex flex-col gap-3">
+              {navItems.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className="text-gray-600 hover:text-gray-900 font-medium transition-colors py-1"
+                  onClick={() => setMobileOpen(false)}
+                >
+                  {item.label}
+                </Link>
+              ))}
+              <Link
+                href="/admin/login"
+                className="text-gray-600 hover:text-gray-900 font-medium transition-colors py-1"
+                onClick={() => setMobileOpen(false)}
+              >
+                Sign In
+              </Link>
+            </nav>
+          </div>
+        )}
       </div>
     </header>
   );

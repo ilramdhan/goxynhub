@@ -5,6 +5,7 @@ import (
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/jmoiron/sqlx"
 	"github.com/rs/zerolog"
 	"github.com/ilramdhan/goxynhub/apps/backend/internal/config"
 	"github.com/ilramdhan/goxynhub/apps/backend/internal/domain"
@@ -23,6 +24,7 @@ type Dependencies struct {
 	JWTManager       *auth.JWTManager
 	Config           *config.Config
 	Logger           zerolog.Logger
+	DB               *sqlx.DB // for health check
 }
 
 // Setup configures and returns the Gin router
@@ -35,6 +37,8 @@ func Setup(deps *Dependencies) *gin.Engine {
 
 	// Global middleware
 	r.Use(middleware.RecoveryMiddleware())
+	r.Use(middleware.RequestID())
+	r.Use(middleware.StructuredLogger(deps.Logger))
 	r.Use(middleware.SecurityHeaders())
 	r.Use(middleware.MaxBodySize(deps.Config.Security.MaxUploadSize))
 
@@ -48,11 +52,30 @@ func Setup(deps *Dependencies) *gin.Engine {
 		MaxAge:           12 * 3600,
 	}))
 
-	// Health check
+	// Health check with DB ping
 	r.GET("/health", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{
-			"status":  "ok",
+		status := "ok"
+		dbStatus := "ok"
+
+		if deps.DB != nil {
+			if err := deps.DB.PingContext(c.Request.Context()); err != nil {
+				status = "degraded"
+				dbStatus = "error"
+			}
+		}
+
+		statusCode := http.StatusOK
+		if status != "ok" {
+			statusCode = http.StatusServiceUnavailable
+		}
+
+		c.JSON(statusCode, gin.H{
+			"status":  status,
 			"version": deps.Config.App.Version,
+			"env":     deps.Config.App.Env,
+			"checks": gin.H{
+				"database": dbStatus,
+			},
 		})
 	})
 

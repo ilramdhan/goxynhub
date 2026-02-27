@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 	"golang.org/x/crypto/bcrypt"
+
 	"github.com/ilramdhan/goxynhub/apps/backend/internal/domain"
 	"github.com/ilramdhan/goxynhub/apps/backend/internal/pkg/response"
 	"github.com/ilramdhan/goxynhub/apps/backend/internal/repository"
@@ -15,8 +16,8 @@ import (
 
 // UserHandler handles user management endpoints
 type UserHandler struct {
-	userRepo repository.UserRepository
-	logger   zerolog.Logger
+	userRepo   repository.UserRepository
+	logger     zerolog.Logger
 	bcryptCost int
 }
 

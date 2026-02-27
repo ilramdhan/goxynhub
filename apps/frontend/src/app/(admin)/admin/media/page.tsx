@@ -2,7 +2,6 @@
 
 import { useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import Image from "next/image";
 import apiClient from "@/lib/api/client";
 import type { ApiResponse, Media } from "@/types/api.types";
 

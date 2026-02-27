@@ -8,7 +8,7 @@ import {
   getPublicNavigation,
   getPublicSite,
 } from "@/lib/api/public.api";
-import { contentsToMap, getContentValue } from "@/types/api.types";
+import { contentsToMap } from "@/types/api.types";
 import { HeroSection } from "@/components/landing/HeroSection";
 import { FeaturesSection } from "@/components/landing/FeaturesSection";
 import { StatsSection } from "@/components/landing/StatsSection";
@@ -25,7 +25,6 @@ import type {
   Testimonial,
   PricingPlan,
   FAQ,
-  NavigationMenu,
 } from "@/types/api.types";
 
 const SITE_ID = process.env.NEXT_PUBLIC_DEFAULT_SITE_ID || "";

@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import type { User } from "@/types/api.types";
-import { setAccessToken } from "@/lib/api/client";
+import { setAccessToken as setAxiosToken } from "@/lib/api/client";
 
 interface AuthState {
   user: User | null;
@@ -34,12 +34,12 @@ export const useAuthStore = create<AuthStore>()(
         set({ user, isAuthenticated: !!user }),
 
       setAccessToken: (token) => {
-        setAccessToken(token); // Update axios client
+        setAxiosToken(token); // Update axios client
         set({ accessToken: token });
       },
 
       login: (user, token) => {
-        setAccessToken(token); // Update axios client
+        setAxiosToken(token); // Update axios client
         set({
           user,
           accessToken: token,
@@ -49,7 +49,7 @@ export const useAuthStore = create<AuthStore>()(
       },
 
       logout: () => {
-        setAccessToken(null); // Clear axios client token
+        setAxiosToken(null); // Clear axios client token
         set({
           user: null,
           accessToken: null,

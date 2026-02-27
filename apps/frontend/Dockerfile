@@ -7,8 +7,8 @@ WORKDIR /app
 RUN npm install -g pnpm@9
 
 # Copy package files
-COPY package.json pnpm-lock.yaml* ./
-RUN pnpm install --frozen-lockfile
+COPY package.json ./
+RUN pnpm install --no-frozen-lockfile
 
 # Copy source code
 COPY . .
@@ -40,6 +40,6 @@ ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD wget -qO- http://localhost:3000/api/health || exit 1
+    CMD wget -qO- http://localhost:3000/ || exit 1
 
 CMD ["node", "server.js"]

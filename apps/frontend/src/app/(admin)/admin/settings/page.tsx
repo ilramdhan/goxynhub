@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import apiClient, { extractApiError } from "@/lib/api/client";
 import type { ApiResponse, SiteSetting } from "@/types/api.types";
@@ -38,14 +38,18 @@ export default function SettingsPage() {
   const { data: settings = [], isLoading } = useQuery({
     queryKey: ["settings", SITE_ID],
     queryFn: () => getSettings(SITE_ID),
-    onSuccess: (data) => {
+  });
+
+  // Initialize form values when settings load
+  useEffect(() => {
+    if (settings.length > 0) {
       const values: Record<string, string> = {};
-      data.forEach((s) => {
+      settings.forEach((s) => {
         values[s.key] = s.value || "";
       });
       setFormValues(values);
-    },
-  } as any);
+    }
+  }, [settings]);
 
   const saveMutation = useMutation({
     mutationFn: () => bulkUpdateSettings(SITE_ID, formValues),

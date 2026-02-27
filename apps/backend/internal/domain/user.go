@@ -93,8 +93,7 @@ type UserFilter struct {
 	Role   *UserRole
 	Status *UserStatus
 	Search *string
-	Page   int
-	Limit  int
+	Pagination
 }
 
 // CreateUserInput holds data for creating a new user

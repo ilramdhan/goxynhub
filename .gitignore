@@ -1,0 +1,46 @@
+# ─── Environment files ────────────────────────────────────────────────────────
+.env
+.env.local
+.env.*.local
+apps/backend/.env
+apps/frontend/.env.local
+
+# ─── Go ───────────────────────────────────────────────────────────────────────
+apps/backend/bin/
+apps/backend/tmp/
+apps/backend/vendor/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+coverage.out
+coverage.html
+
+# ─── Node.js ──────────────────────────────────────────────────────────────────
+node_modules/
+apps/frontend/node_modules/
+apps/frontend/.next/
+apps/frontend/out/
+apps/frontend/.turbo/
+
+# ─── Docker ───────────────────────────────────────────────────────────────────
+docker/nginx/ssl/
+
+# ─── IDE ──────────────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# ─── Logs ─────────────────────────────────────────────────────────────────────
+*.log
+logs/
+
+# ─── Build artifacts ──────────────────────────────────────────────────────────
+dist/
+build/

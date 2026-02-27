@@ -1,0 +1,61 @@
+version: "3.9"
+
+services:
+  # Backend API
+  backend:
+    build:
+      context: ./apps/backend
+      dockerfile: Dockerfile
+    container_name: landing-cms-backend
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      - APP_ENV=development
+      - APP_PORT=8080
+      - DATABASE_URL=${DATABASE_URL}
+      - JWT_ACCESS_SECRET=${JWT_ACCESS_SECRET}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
+      - JWT_ACCESS_EXPIRY=15m
+      - JWT_REFRESH_EXPIRY=168h
+      - CORS_ORIGINS=http://localhost:3000
+      - CORS_ALLOW_CREDENTIALS=true
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
+      - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_KEY}
+      - SUPABASE_STORAGE_BUCKET=media
+      - LOG_LEVEL=debug
+      - LOG_FORMAT=console
+      - COOKIE_DOMAIN=localhost
+      - COOKIE_SECURE=false
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - landing-cms-network
+
+  # Frontend
+  frontend:
+    build:
+      context: ./apps/frontend
+      dockerfile: Dockerfile
+    container_name: landing-cms-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8080/api/v1
+      - NEXT_PUBLIC_SITE_URL=http://localhost:3000
+      - NEXT_PUBLIC_DEFAULT_SITE_ID=${DEFAULT_SITE_ID}
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - landing-cms-network
+
+networks:
+  landing-cms-network:
+    driver: bridge

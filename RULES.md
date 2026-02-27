@@ -1,4 +1,4 @@
-# 📏 Development Rules & Guidelines
+# 📏 Development Rules & Guidelines (v2.0)
 
 This document defines the coding standards, conventions, and best practices for this project. All contributors must follow these rules to maintain consistency and quality.
 
@@ -14,6 +14,7 @@ This document defines the coding standards, conventions, and best practices for 
 7. [Security Rules](#security-rules)
 8. [Testing Rules](#testing-rules)
 9. [Documentation Rules](#documentation-rules)
+10. [UI Component Rules](#ui-component-rules)
 
 ---
 
@@ -550,21 +551,141 @@ Integration:   apps/backend/tests/integration/
 E2E:           apps/backend/tests/e2e/
 ```
 
-- Minimum 80% code coverage for service layer
-- Mock all external dependencies (DB, external APIs)
-- Use table-driven tests for multiple scenarios
-- Test both happy path and error cases
+#### Go Test Standards
+- Minimum **80% code coverage** for service layer
+- Mock all external dependencies (DB, external APIs) — never use real DB in unit tests
+- Use **table-driven tests** for multiple scenarios
+- Test both happy path AND error cases
+- Run with race detector: `go test -race ./...`
+
+```go
+// ✅ CORRECT - Table-driven test pattern
+func TestAuthService_Login(t *testing.T) {
+    tests := []struct {
+        name      string
+        input     domain.LoginInput
+        wantErr   error
+        wantUser  bool
+    }{
+        {name: "success", input: domain.LoginInput{...}, wantUser: true},
+        {name: "wrong password", input: domain.LoginInput{...}, wantErr: domain.ErrInvalidCredentials},
+    }
+    for _, tt := range tests {
+        t.Run(tt.name, func(t *testing.T) {
+            // test body
+        })
+    }
+}
+```
+
+#### Mock Pattern
+```go
+// Define interface in consumer package, implement mock in test file
+type mockUserRepository struct {
+    users map[string]*domain.User
+}
+func (m *mockUserRepository) FindByEmail(ctx context.Context, email string) (*domain.User, error) {
+    if u, ok := m.users[email]; ok { return u, nil }
+    return nil, domain.ErrNotFound
+}
+```
 
 ### Frontend Testing
 ```
-Unit tests:    src/components/__tests__/
+Unit tests:    src/lib/__tests__/
+               src/hooks/__tests__/
+               src/components/__tests__/
 Integration:   src/app/__tests__/
 E2E:           e2e/
 ```
 
+- Test all utility functions (target 100% coverage)
 - Test all custom hooks
-- Test form validation
-- E2E tests for critical user flows (login, content update)
+- Test form validation logic
+- Use `@testing-library/react` for component tests
+- Mock API calls with `vi.mock`
+
+```typescript
+// ✅ CORRECT - Vitest test structure
+describe("generateSlug", () => {
+  it("converts to lowercase", () => {
+    expect(generateSlug("Hello World")).toBe("hello-world");
+  });
+  it("removes special characters", () => {
+    expect(generateSlug("Hello, World!")).toBe("hello-world");
+  });
+});
+```
+
+### Running Tests
+```bash
+# Backend
+cd apps/backend
+go test ./...                                    # All tests
+go test -v -race ./internal/service/...          # Service tests
+go test -coverprofile=coverage.out ./...         # With coverage
+
+# Frontend
+cd apps/frontend
+pnpm test                                        # Run once
+pnpm test:watch                                  # Watch mode
+pnpm test:coverage                               # With coverage report
+```
+
+## 10. UI Component Rules
+
+### Reusable Components Location
+- `src/components/ui/` — Base UI components (toast, skeleton, confirm-dialog, etc.)
+- `src/components/landing/` — Landing page section components
+- `src/components/admin/` — Admin-specific components
+- `src/components/common/` — Shared across admin and public
+
+### Toast Notifications
+```typescript
+// ✅ CORRECT - Use useToast hook for all notifications
+const { success, error, warning } = useToast();
+
+// On successful save
+success("Saved!", "Your changes have been saved.");
+
+// On error
+error("Failed", "Could not save changes. Please try again.");
+```
+
+### Confirm Dialogs
+```typescript
+// ✅ CORRECT - Use useConfirm hook instead of window.confirm
+const { confirm } = useConfirm();
+
+const handleDelete = async () => {
+  const confirmed = await confirm({
+    title: "Delete Page",
+    message: "This action cannot be undone.",
+    confirmText: "Delete",
+    variant: "danger",
+  });
+  if (confirmed) {
+    await deletePage(id);
+  }
+};
+```
+
+### Loading States
+```typescript
+// ✅ CORRECT - Use Skeleton components during loading
+if (isLoading) return <SkeletonTable rows={5} />;
+```
+
+### Utility Functions
+```typescript
+// ✅ CORRECT - Use cn() for conditional classes
+import { cn } from "@/lib/utils";
+<div className={cn("base-class", isActive && "active-class", className)} />
+
+// ✅ CORRECT - Use formatFileSize for file sizes
+import { formatFileSize } from "@/lib/utils";
+<span>{formatFileSize(media.file_size)}</span>
+```
 
 ---
 

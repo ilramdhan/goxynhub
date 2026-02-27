@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { listNavigation } from "@/lib/api/components.api";
 import apiClient from "@/lib/api/client";
@@ -17,12 +17,14 @@ export default function NavigationPage() {
   const { data: menus = [], isLoading } = useQuery({
     queryKey: ["navigation", SITE_ID],
     queryFn: () => listNavigation(SITE_ID),
-    onSuccess: (data) => {
-      if (data.length > 0 && !selectedMenu) {
-        setSelectedMenu(data[0]);
-      }
-    },
-  } as any);
+  });
+
+  // Auto-select first menu when data loads
+  useEffect(() => {
+    if (menus.length > 0 && !selectedMenu) {
+      setSelectedMenu(menus[0]);
+    }
+  }, [menus, selectedMenu]);
 
   const createItemMutation = useMutation({
     mutationFn: (data: Partial<NavigationItem>) =>

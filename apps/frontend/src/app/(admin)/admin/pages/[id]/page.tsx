@@ -176,7 +176,7 @@ export default function PageEditorPage() {
           </div>
 
           <div className="space-y-1">
-            {sections.map((section, index) => (
+            {sections.map((section) => (
               <button
                 key={section.id}
                 onClick={() => {

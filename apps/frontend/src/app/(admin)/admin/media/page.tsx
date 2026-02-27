@@ -3,11 +3,11 @@
 import { useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import apiClient from "@/lib/api/client";
-import type { ApiResponse, Media } from "@/types/api.types";
+import type { ApiResponse, Media, PaginationMeta } from "@/types/api.types";
 
 const SITE_ID = process.env.NEXT_PUBLIC_DEFAULT_SITE_ID || "";
 
-async function getMedia(siteId: string, page = 1): Promise<{ data: Media[]; meta: any }> {
+async function getMedia(siteId: string, page = 1): Promise<{ data: Media[]; meta: PaginationMeta | undefined }> {
   const { data } = await apiClient.get<ApiResponse<Media[]>>("/admin/media", {
     params: { site_id: siteId, page, per_page: 24 },
   });

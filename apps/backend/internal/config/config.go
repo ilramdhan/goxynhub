@@ -10,15 +10,15 @@ import (
 
 // Config holds all application configuration
 type Config struct {
-	App      AppConfig
-	Database DatabaseConfig
-	JWT      JWTConfig
-	CORS     CORSConfig
-	Supabase SupabaseConfig
+	App       AppConfig
+	Database  DatabaseConfig
+	JWT       JWTConfig
+	CORS      CORSConfig
+	Supabase  SupabaseConfig
 	RateLimit RateLimitConfig
-	Log      LogConfig
-	Security SecurityConfig
-	Cookie   CookieConfig
+	Log       LogConfig
+	Security  SecurityConfig
+	Cookie    CookieConfig
 }
 
 // AppConfig holds application-level configuration
@@ -44,7 +44,7 @@ type JWTConfig struct {
 	RefreshSecret string
 	AccessExpiry  time.Duration
 	RefreshExpiry time.Duration
-	Issuer       string
+	Issuer        string
 }
 
 // CORSConfig holds CORS configuration
@@ -63,11 +63,11 @@ type SupabaseConfig struct {
 
 // RateLimitConfig holds rate limiting configuration
 type RateLimitConfig struct {
-	Enabled          bool
-	Requests         int
-	Window           time.Duration
-	AuthRequests     int
-	AuthWindow       time.Duration
+	Enabled      bool
+	Requests     int
+	Window       time.Duration
+	AuthRequests int
+	AuthWindow   time.Duration
 }
 
 // LogConfig holds logging configuration
@@ -121,7 +121,7 @@ func Load() (*Config, error) {
 			RefreshSecret: viper.GetString("JWT_REFRESH_SECRET"),
 			AccessExpiry:  viper.GetDuration("JWT_ACCESS_EXPIRY"),
 			RefreshExpiry: viper.GetDuration("JWT_REFRESH_EXPIRY"),
-			Issuer:       viper.GetString("JWT_ISSUER"),
+			Issuer:        viper.GetString("JWT_ISSUER"),
 		},
 		CORS: CORSConfig{
 			Origins:          strings.Split(viper.GetString("CORS_ORIGINS"), ","),

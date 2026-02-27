@@ -201,7 +201,7 @@ function CreateUserModal({
   onClose,
   isLoading,
 }: {
-  onSubmit: (data: any) => void;
+  onSubmit: (data: { email: string; password: string; full_name: string; role: UserRole }) => void;
   onClose: () => void;
   isLoading: boolean;
 }) {
@@ -325,7 +325,7 @@ function EditUserModal({
             <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
             <select
               value={form.status}
-              onChange={(e) => setForm({ ...form, status: e.target.value as any })}
+              onChange={(e) => setForm({ ...form, status: e.target.value as User["status"] })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
             >
               <option value="active">Active</option>

@@ -69,7 +69,9 @@ func AuditLogger(compRepo repository.ComponentRepository, logger zerolog.Logger)
 		// Parse request body for new values
 		var newValues domain.JSONMap
 		if len(requestBody) > 0 {
-			json.Unmarshal(requestBody, &newValues)
+			if err := json.Unmarshal(requestBody, &newValues); err != nil {
+				logger.Debug().Err(err).Msg("failed to parse request body for audit log")
+			}
 			// Remove sensitive fields
 			delete(newValues, "password")
 			delete(newValues, "password_hash")

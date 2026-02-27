@@ -204,7 +204,7 @@ export async function listNavigation(siteId: string): Promise<NavigationMenu[]> 
 export async function listAuditLogs(
   siteId?: string,
   params?: { action?: string; resource_type?: string; page?: number }
-): Promise<{ data: AuditLog[]; meta: any }> {
+): Promise<{ data: AuditLog[]; meta: ApiResponse["meta"] }> {
   try {
     const { data } = await apiClient.get<ApiResponse<AuditLog[]>>("/admin/audit-logs", {
       params: { site_id: siteId, ...params },

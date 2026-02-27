@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation } from "@tanstack/react-query";
 import { createPage } from "@/lib/api/pages.api";
-import type { PageStatus } from "@/types/api.types";
+import type { Page, PageStatus } from "@/types/api.types";
 
 const SITE_ID = process.env.NEXT_PUBLIC_DEFAULT_SITE_ID || "";
 
@@ -63,7 +63,7 @@ export default function NewPagePage() {
       og_description: form.og_description || undefined,
       og_image: form.og_image || undefined,
       robots_meta: form.robots_meta,
-    } as any);
+    } as Partial<Page>);
   };
 
   return (

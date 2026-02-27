@@ -1,0 +1,2429 @@
+openapi: "3.0.3"
+info:
+  title: Landing CMS API
+  description: |
+    A headless CMS API for managing landing pages, content, and components.
+    
+    ## Authentication
+    The API uses JWT Bearer tokens. Login to get an access token, then include it in the Authorization header.
+    
+    ## Roles
+    - **editor**: Can manage content (pages, sections, features, testimonials, pricing, FAQs, navigation, media)
+    - **admin**: Can manage users, sites, settings, and all editor content
+    - **super_admin**: Full access including delete operations
+  version: "1.0.0"
+  contact:
+    name: Landing CMS Support
+    email: support@example.com
+
+servers:
+  - url: http://localhost:8080/api/v1
+    description: Local development
+  - url: https://api.example.com/api/v1
+    description: Production
+
+tags:
+  - name: Health
+    description: Health check endpoints
+  - name: Auth
+    description: Authentication endpoints
+  - name: Public
+    description: Public endpoints (no auth required)
+  - name: Sites
+    description: Site management (admin+)
+  - name: Pages
+    description: Page management (editor+)
+  - name: Sections
+    description: Page section management (editor+)
+  - name: Contents
+    description: Section content management (editor+)
+  - name: Features
+    description: Feature management (editor+)
+  - name: Testimonials
+    description: Testimonial management (editor+)
+  - name: Pricing
+    description: Pricing plan management (editor+)
+  - name: FAQs
+    description: FAQ management (editor+)
+  - name: Navigation
+    description: Navigation menu management (editor+)
+  - name: Media
+    description: Media file management (editor+)
+  - name: Users
+    description: User management (admin+)
+  - name: AuditLogs
+    description: Audit log viewing (admin+)
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    # ─── Common ───────────────────────────────────────────────────────────────
+    ApiResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          type: object
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+
+    PaginationMeta:
+      type: object
+      properties:
+        page:
+          type: integer
+          example: 1
+        per_page:
+          type: integer
+          example: 20
+        total:
+          type: integer
+          example: 100
+        total_pages:
+          type: integer
+          example: 5
+
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+          example: "error description"
+
+    # ─── Auth ─────────────────────────────────────────────────────────────────
+    LoginInput:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+          example: admin@example.com
+        password:
+          type: string
+          format: password
+          example: Admin@123456
+
+    LoginResponse:
+      type: object
+      properties:
+        access_token:
+          type: string
+        expires_at:
+          type: string
+          format: date-time
+        token_type:
+          type: string
+          example: Bearer
+        user:
+          $ref: '#/components/schemas/UserSummary'
+
+    UserSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+        full_name:
+          type: string
+        role:
+          $ref: '#/components/schemas/UserRole'
+        avatar_url:
+          type: string
+          nullable: true
+
+    ChangePasswordInput:
+      type: object
+      required: [current_password, new_password]
+      properties:
+        current_password:
+          type: string
+        new_password:
+          type: string
+          minLength: 8
+
+    # ─── User ─────────────────────────────────────────────────────────────────
+    UserRole:
+      type: string
+      enum: [super_admin, admin, editor]
+
+    UserStatus:
+      type: string
+      enum: [active, inactive, suspended]
+
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+        full_name:
+          type: string
+        avatar_url:
+          type: string
+          nullable: true
+        role:
+          $ref: '#/components/schemas/UserRole'
+        status:
+          $ref: '#/components/schemas/UserStatus'
+        email_verified:
+          type: boolean
+        last_login_at:
+          type: string
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    CreateUserInput:
+      type: object
+      required: [email, password, full_name, role]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+        full_name:
+          type: string
+        role:
+          $ref: '#/components/schemas/UserRole'
+
+    UpdateUserInput:
+      type: object
+      properties:
+        full_name:
+          type: string
+        avatar_url:
+          type: string
+        role:
+          $ref: '#/components/schemas/UserRole'
+        status:
+          $ref: '#/components/schemas/UserStatus'
+
+    # ─── Site ─────────────────────────────────────────────────────────────────
+    Site:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        slug:
+          type: string
+        domain:
+          type: string
+          nullable: true
+        description:
+          type: string
+          nullable: true
+        logo_url:
+          type: string
+          nullable: true
+        favicon_url:
+          type: string
+          nullable: true
+        is_active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        settings:
+          type: array
+          items:
+            $ref: '#/components/schemas/SiteSetting'
+
+    SiteSetting:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        site_id:
+          type: string
+          format: uuid
+        key:
+          type: string
+        value:
+          type: string
+          nullable: true
+        type:
+          type: string
+        group_name:
+          type: string
+        label:
+          type: string
+          nullable: true
+        description:
+          type: string
+          nullable: true
+        is_public:
+          type: boolean
+        sort_order:
+          type: integer
+
+    CreateSiteInput:
+      type: object
+      required: [name, slug]
+      properties:
+        name:
+          type: string
+        slug:
+          type: string
+        domain:
+          type: string
+        description:
+          type: string
+        logo_url:
+          type: string
+        favicon_url:
+          type: string
+
+    UpdateSiteInput:
+      type: object
+      properties:
+        name:
+          type: string
+        slug:
+          type: string
+        domain:
+          type: string
+        description:
+          type: string
+        logo_url:
+          type: string
+        favicon_url:
+          type: string
+        is_active:
+          type: boolean
+
+    UpdateSettingInput:
+      type: object
+      properties:
+        value:
+          type: string
+
+    BulkUpdateSettingsInput:
+      type: object
+      properties:
+        settings:
+          type: object
+          additionalProperties:
+            type: string
+
+    # ─── Page ─────────────────────────────────────────────────────────────────
+    PageStatus:
+      type: string
+      enum: [draft, published, archived]
+
+    SectionType:
+      type: string
+      enum: [hero, features, pricing, testimonials, faq, cta, about, team, gallery, stats, logos, newsletter, contact, video, custom, html]
+
+    ContentType:
+      type: string
+      enum: [text, html, markdown, image, video, link, button, color, number, boolean, json, file]
+
+    Page:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        site_id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        slug:
+          type: string
+        description:
+          type: string
+          nullable: true
+        status:
+          $ref: '#/components/schemas/PageStatus'
+        is_homepage:
+          type: boolean
+        seo_title:
+          type: string
+          nullable: true
+        seo_description:
+          type: string
+          nullable: true
+        seo_keywords:
+          type: string
+          nullable: true
+        og_title:
+          type: string
+          nullable: true
+        og_description:
+          type: string
+          nullable: true
+        og_image:
+          type: string
+          nullable: true
+        og_type:
+          type: string
+          nullable: true
+        twitter_title:
+          type: string
+          nullable: true
+        twitter_description:
+          type: string
+          nullable: true
+        twitter_image:
+          type: string
+          nullable: true
+        twitter_card:
+          type: string
+          nullable: true
+        custom_head:
+          type: string
+          nullable: true
+        canonical_url:
+          type: string
+          nullable: true
+        robots_meta:
+          type: string
+          nullable: true
+        template:
+          type: string
+          nullable: true
+        sort_order:
+          type: integer
+        published_at:
+          type: string
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        sections:
+          type: array
+          items:
+            $ref: '#/components/schemas/PageSection'
+
+    PageSection:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        page_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        type:
+          $ref: '#/components/schemas/SectionType'
+        identifier:
+          type: string
+          nullable: true
+        is_visible:
+          type: boolean
+        sort_order:
+          type: integer
+        bg_color:
+          type: string
+          nullable: true
+        bg_image:
+          type: string
+          nullable: true
+        bg_video:
+          type: string
+          nullable: true
+        bg_overlay:
+          type: boolean
+        bg_overlay_color:
+          type: string
+          nullable: true
+        bg_overlay_opacity:
+          type: number
+          nullable: true
+        layout:
+          type: string
+          nullable: true
+        padding_top:
+          type: string
+          nullable: true
+        padding_bottom:
+          type: string
+          nullable: true
+        animation:
+          type: string
+          nullable: true
+        css_class:
+          type: string
+          nullable: true
+        custom_css:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        contents:
+          type: array
+          items:
+            $ref: '#/components/schemas/SectionContent'
+
+    SectionContent:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        section_id:
+          type: string
+          format: uuid
+        key:
+          type: string
+        value:
+          type: string
+          nullable: true
+        value_json:
+          type: object
+          nullable: true
+        type:
+          $ref: '#/components/schemas/ContentType'
+        label:
+          type: string
+          nullable: true
+        description:
+          type: string
+          nullable: true
+        placeholder:
+          type: string
+          nullable: true
+        is_required:
+          type: boolean
+        sort_order:
+          type: integer
+        alt_text:
+          type: string
+          nullable: true
+        width:
+          type: integer
+          nullable: true
+        height:
+          type: integer
+          nullable: true
+        link_url:
+          type: string
+          nullable: true
+        link_target:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    CreatePageInput:
+      type: object
+      required: [site_id, title, slug, status]
+      properties:
+        site_id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        slug:
+          type: string
+        description:
+          type: string
+        status:
+          $ref: '#/components/schemas/PageStatus'
+        is_homepage:
+          type: boolean
+        seo_title:
+          type: string
+        seo_description:
+          type: string
+        seo_keywords:
+          type: string
+        og_title:
+          type: string
+        og_description:
+          type: string
+        og_image:
+          type: string
+        og_type:
+          type: string
+        twitter_title:
+          type: string
+        twitter_description:
+          type: string
+        twitter_image:
+          type: string
+        twitter_card:
+          type: string
+        canonical_url:
+          type: string
+        robots_meta:
+          type: string
+        template:
+          type: string
+
+    UpdatePageInput:
+      type: object
+      properties:
+        title:
+          type: string
+        slug:
+          type: string
+        description:
+          type: string
+        status:
+          $ref: '#/components/schemas/PageStatus'
+        is_homepage:
+          type: boolean
+        seo_title:
+          type: string
+        seo_description:
+          type: string
+        seo_keywords:
+          type: string
+        og_title:
+          type: string
+        og_description:
+          type: string
+        og_image:
+          type: string
+        og_type:
+          type: string
+        twitter_title:
+          type: string
+        twitter_description:
+          type: string
+        twitter_image:
+          type: string
+        twitter_card:
+          type: string
+        canonical_url:
+          type: string
+        robots_meta:
+          type: string
+        template:
+          type: string
+        custom_head:
+          type: string
+
+    CreateSectionInput:
+      type: object
+      required: [name, type]
+      properties:
+        name:
+          type: string
+        type:
+          $ref: '#/components/schemas/SectionType'
+        identifier:
+          type: string
+        is_visible:
+          type: boolean
+        sort_order:
+          type: integer
+
+    UpdateSectionInput:
+      type: object
+      properties:
+        name:
+          type: string
+        type:
+          $ref: '#/components/schemas/SectionType'
+        is_visible:
+          type: boolean
+        sort_order:
+          type: integer
+        bg_color:
+          type: string
+        bg_image:
+          type: string
+        bg_video:
+          type: string
+        bg_overlay:
+          type: boolean
+        bg_overlay_color:
+          type: string
+        bg_overlay_opacity:
+          type: number
+        layout:
+          type: string
+        padding_top:
+          type: string
+        padding_bottom:
+          type: string
+        animation:
+          type: string
+        css_class:
+          type: string
+        custom_css:
+          type: string
+
+    UpsertContentInput:
+      type: object
+      required: [key, type]
+      properties:
+        key:
+          type: string
+        value:
+          type: string
+        value_json:
+          type: object
+        type:
+          $ref: '#/components/schemas/ContentType'
+        label:
+          type: string
+        description:
+          type: string
+        placeholder:
+          type: string
+        is_required:
+          type: boolean
+        sort_order:
+          type: integer
+        alt_text:
+          type: string
+        width:
+          type: integer
+        height:
+          type: integer
+        link_url:
+          type: string
+        link_target:
+          type: string
+
+    ReorderSectionsInput:
+      type: object
+      required: [sections]
+      properties:
+        sections:
+          type: array
+          items:
+            type: object
+            required: [id, sort_order]
+            properties:
+              id:
+                type: string
+                format: uuid
+              sort_order:
+                type: integer
+
+    # ─── Components ───────────────────────────────────────────────────────────
+    Feature:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        site_id:
+          type: string
+          format: uuid
+        section_id:
+          type: string
+          format: uuid
+          nullable: true
+        title:
+          type: string
+        description:
+          type: string
+          nullable: true
+        icon:
+          type: string
+          nullable: true
+        icon_color:
+          type: string
+          nullable: true
+        image_url:
+          type: string
+          nullable: true
+        image_alt:
+          type: string
+          nullable: true
+        link_url:
+          type: string
+          nullable: true
+        link_text:
+          type: string
+          nullable: true
+        is_active:
+          type: boolean
+        sort_order:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    Testimonial:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        site_id:
+          type: string
+          format: uuid
+        section_id:
+          type: string
+          format: uuid
+          nullable: true
+        author_name:
+          type: string
+        author_title:
+          type: string
+          nullable: true
+        author_company:
+          type: string
+          nullable: true
+        author_avatar:
+          type: string
+          nullable: true
+        content:
+          type: string
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+          nullable: true
+        source:
+          type: string
+          nullable: true
+        source_url:
+          type: string
+          nullable: true
+        is_featured:
+          type: boolean
+        is_active:
+          type: boolean
+        sort_order:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    PricingPlan:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        site_id:
+          type: string
+          format: uuid
+        section_id:
+          type: string
+          format: uuid
+          nullable: true
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        price_monthly:
+          type: number
+          nullable: true
+        price_yearly:
+          type: number
+          nullable: true
+        currency:
+          type: string
+          example: USD
+        price_label:
+          type: string
+          nullable: true
+        is_popular:
+          type: boolean
+        is_custom:
+          type: boolean
+        badge_text:
+          type: string
+          nullable: true
+        cta_text:
+          type: string
+        cta_link:
+          type: string
+          nullable: true
+        features:
+          type: array
+          items:
+            type: string
+        features_excluded:
+          type: array
+          items:
+            type: string
+        is_active:
+          type: boolean
+        sort_order:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    FAQ:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        site_id:
+          type: string
+          format: uuid
+        section_id:
+          type: string
+          format: uuid
+          nullable: true
+        question:
+          type: string
+        answer:
+          type: string
+        category:
+          type: string
+          nullable: true
+        is_active:
+          type: boolean
+        sort_order:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    NavigationMenu:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        site_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        identifier:
+          type: string
+        description:
+          type: string
+          nullable: true
+        is_active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/NavigationItem'
+
+    NavigationItem:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        menu_id:
+          type: string
+          format: uuid
+        parent_id:
+          type: string
+          format: uuid
+          nullable: true
+        page_id:
+          type: string
+          format: uuid
+          nullable: true
+        label:
+          type: string
+        url:
+          type: string
+          nullable: true
+        target:
+          type: string
+          enum: [_self, _blank]
+        icon:
+          type: string
+          nullable: true
+        css_class:
+          type: string
+          nullable: true
+        is_active:
+          type: boolean
+        is_mega_menu:
+          type: boolean
+        sort_order:
+          type: integer
+        depth:
+          type: integer
+        children:
+          type: array
+          items:
+            $ref: '#/components/schemas/NavigationItem'
+
+    Media:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        site_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        original_name:
+          type: string
+        file_path:
+          type: string
+        public_url:
+          type: string
+        thumbnail_url:
+          type: string
+          nullable: true
+        type:
+          type: string
+          enum: [image, video, document, audio, other]
+        mime_type:
+          type: string
+        file_size:
+          type: integer
+        width:
+          type: integer
+          nullable: true
+        height:
+          type: integer
+          nullable: true
+        duration:
+          type: integer
+          nullable: true
+        alt_text:
+          type: string
+          nullable: true
+        caption:
+          type: string
+          nullable: true
+        tags:
+          type: array
+          items:
+            type: string
+        folder:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    AuditLog:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+          nullable: true
+        user_email:
+          type: string
+          nullable: true
+        user_role:
+          type: string
+          nullable: true
+        action:
+          type: string
+          example: create
+        resource_type:
+          type: string
+          example: page
+        resource_id:
+          type: string
+          format: uuid
+          nullable: true
+        resource_name:
+          type: string
+          nullable: true
+        old_values:
+          type: object
+          nullable: true
+        new_values:
+          type: object
+          nullable: true
+        ip_address:
+          type: string
+          nullable: true
+        site_id:
+          type: string
+          format: uuid
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+
+paths:
+  # ─── Health ───────────────────────────────────────────────────────────────
+  /health:
+    get:
+      tags: [Health]
+      summary: Health check
+      description: Check if the API and database are healthy
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  version:
+                    type: string
+                  env:
+                    type: string
+                  checks:
+                    type: object
+                    properties:
+                      database:
+                        type: string
+                        example: ok
+        '503':
+          description: Service is degraded
+
+  # ─── Auth ─────────────────────────────────────────────────────────────────
+  /api/v1/auth/login:
+    post:
+      tags: [Auth]
+      summary: Login
+      description: Authenticate with email and password. Returns access token and sets refresh token cookie.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginInput'
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/LoginResponse'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/auth/logout:
+    post:
+      tags: [Auth]
+      summary: Logout
+      description: Revoke the refresh token and clear the cookie.
+      responses:
+        '200':
+          description: Logged out successfully
+
+  /api/v1/auth/refresh:
+    post:
+      tags: [Auth]
+      summary: Refresh access token
+      description: Use the refresh token cookie to get a new access token.
+      responses:
+        '200':
+          description: Token refreshed
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          access_token:
+                            type: string
+                          expires_at:
+                            type: string
+                            format: date-time
+                          token_type:
+                            type: string
+        '401':
+          description: Invalid or expired refresh token
+
+  /api/v1/auth/me:
+    get:
+      tags: [Auth]
+      summary: Get current user
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Current user info
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/UserSummary'
+
+  /api/v1/auth/change-password:
+    post:
+      tags: [Auth]
+      summary: Change password
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangePasswordInput'
+      responses:
+        '200':
+          description: Password changed successfully
+        '400':
+          description: Current password is incorrect
+
+  # ─── Public ───────────────────────────────────────────────────────────────
+  /api/v1/public/sites/{id}:
+    get:
+      tags: [Public]
+      summary: Get site by ID (public)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Site info with public settings
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Site'
+
+  /api/v1/public/site/{slug}:
+    get:
+      tags: [Public]
+      summary: Get site by slug (public)
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Site info with public settings
+
+  /api/v1/public/pages/{slug}:
+    get:
+      tags: [Public]
+      summary: Get published page by slug
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: site_id
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Page with sections and content
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Page'
+        '404':
+          description: Page not found
+
+  /api/v1/public/pages:
+    get:
+      tags: [Public]
+      summary: Get homepage
+      parameters:
+        - name: site_id
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Homepage with sections and content
+
+  /api/v1/public/navigation/{siteId}/{identifier}:
+    get:
+      tags: [Public]
+      summary: Get navigation menu by identifier
+      parameters:
+        - name: siteId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: identifier
+          in: path
+          required: true
+          schema:
+            type: string
+            example: header
+      responses:
+        '200':
+          description: Navigation menu with items
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/NavigationMenu'
+
+  /api/v1/public/navigation/{siteId}:
+    get:
+      tags: [Public]
+      summary: Get default navigation menu
+      parameters:
+        - name: siteId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Default navigation menu
+
+  # ─── Sites ────────────────────────────────────────────────────────────────
+  /api/v1/admin/sites:
+    get:
+      tags: [Sites]
+      summary: List sites
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: per_page
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of sites
+    post:
+      tags: [Sites]
+      summary: Create site
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSiteInput'
+      responses:
+        '201':
+          description: Site created
+        '409':
+          description: Site with this slug already exists
+
+  /api/v1/admin/sites/{id}:
+    get:
+      tags: [Sites]
+      summary: Get site by ID
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Site details
+        '404':
+          description: Site not found
+    put:
+      tags: [Sites]
+      summary: Update site
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateSiteInput'
+      responses:
+        '200':
+          description: Site updated
+    delete:
+      tags: [Sites]
+      summary: Delete site (super_admin only)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Site deleted
+
+  /api/v1/admin/sites/{id}/settings:
+    get:
+      tags: [Sites]
+      summary: Get site settings
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Site settings
+    put:
+      tags: [Sites]
+      summary: Bulk update site settings
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BulkUpdateSettingsInput'
+      responses:
+        '200':
+          description: Settings updated
+
+  /api/v1/admin/sites/{id}/settings/{key}:
+    put:
+      tags: [Sites]
+      summary: Update single site setting
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: key
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateSettingInput'
+      responses:
+        '200':
+          description: Setting updated
+
+  # ─── Pages ────────────────────────────────────────────────────────────────
+  /api/v1/admin/pages:
+    get:
+      tags: [Pages]
+      summary: List pages
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: site_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/PageStatus'
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+        - name: per_page
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Paginated list of pages
+    post:
+      tags: [Pages]
+      summary: Create page
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePageInput'
+      responses:
+        '201':
+          description: Page created
+        '409':
+          description: Page with this slug already exists
+
+  /api/v1/admin/pages/{id}:
+    get:
+      tags: [Pages]
+      summary: Get page by ID
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Page details
+        '404':
+          description: Page not found
+    put:
+      tags: [Pages]
+      summary: Update page
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePageInput'
+      responses:
+        '200':
+          description: Page updated
+    delete:
+      tags: [Pages]
+      summary: Delete page (admin+)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Page deleted
+
+  /api/v1/admin/pages/{id}/publish:
+    patch:
+      tags: [Pages]
+      summary: Publish page
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Page published
+
+  /api/v1/admin/pages/{id}/unpublish:
+    patch:
+      tags: [Pages]
+      summary: Unpublish page
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Page unpublished
+
+  /api/v1/admin/pages/{id}/sections:
+    get:
+      tags: [Sections]
+      summary: List page sections
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: List of sections
+    post:
+      tags: [Sections]
+      summary: Create section
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSectionInput'
+      responses:
+        '201':
+          description: Section created
+
+  # ─── Sections ─────────────────────────────────────────────────────────────
+  /api/v1/admin/sections/{id}:
+    put:
+      tags: [Sections]
+      summary: Update section
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateSectionInput'
+      responses:
+        '200':
+          description: Section updated
+    delete:
+      tags: [Sections]
+      summary: Delete section
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Section deleted
+
+  /api/v1/admin/sections/reorder:
+    patch:
+      tags: [Sections]
+      summary: Reorder sections
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReorderSectionsInput'
+      responses:
+        '200':
+          description: Sections reordered
+
+  /api/v1/admin/sections/{id}/contents:
+    get:
+      tags: [Contents]
+      summary: List section contents
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: List of contents
+    post:
+      tags: [Contents]
+      summary: Upsert content
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpsertContentInput'
+      responses:
+        '200':
+          description: Content upserted
+
+  /api/v1/admin/sections/{id}/contents/bulk:
+    post:
+      tags: [Contents]
+      summary: Bulk upsert contents
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/UpsertContentInput'
+      responses:
+        '200':
+          description: Contents upserted
+
+  /api/v1/admin/contents/{id}:
+    delete:
+      tags: [Contents]
+      summary: Delete content
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Content deleted
+
+  # ─── Features ─────────────────────────────────────────────────────────────
+  /api/v1/admin/features:
+    get:
+      tags: [Features]
+      summary: List features
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: site_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: List of features
+    post:
+      tags: [Features]
+      summary: Create feature
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Feature'
+      responses:
+        '201':
+          description: Feature created
+
+  /api/v1/admin/features/{id}:
+    put:
+      tags: [Features]
+      summary: Update feature
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Feature'
+      responses:
+        '200':
+          description: Feature updated
+    delete:
+      tags: [Features]
+      summary: Delete feature
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Feature deleted
+
+  # ─── Testimonials ─────────────────────────────────────────────────────────
+  /api/v1/admin/testimonials:
+    get:
+      tags: [Testimonials]
+      summary: List testimonials
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: site_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: List of testimonials
+    post:
+      tags: [Testimonials]
+      summary: Create testimonial
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Testimonial'
+      responses:
+        '201':
+          description: Testimonial created
+
+  /api/v1/admin/testimonials/{id}:
+    put:
+      tags: [Testimonials]
+      summary: Update testimonial
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Testimonial'
+      responses:
+        '200':
+          description: Testimonial updated
+    delete:
+      tags: [Testimonials]
+      summary: Delete testimonial
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Testimonial deleted
+
+  # ─── Pricing ──────────────────────────────────────────────────────────────
+  /api/v1/admin/pricing:
+    get:
+      tags: [Pricing]
+      summary: List pricing plans
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: site_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: List of pricing plans
+    post:
+      tags: [Pricing]
+      summary: Create pricing plan
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PricingPlan'
+      responses:
+        '201':
+          description: Pricing plan created
+
+  /api/v1/admin/pricing/{id}:
+    put:
+      tags: [Pricing]
+      summary: Update pricing plan
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PricingPlan'
+      responses:
+        '200':
+          description: Pricing plan updated
+    delete:
+      tags: [Pricing]
+      summary: Delete pricing plan
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Pricing plan deleted
+
+  # ─── FAQs ─────────────────────────────────────────────────────────────────
+  /api/v1/admin/faqs:
+    get:
+      tags: [FAQs]
+      summary: List FAQs
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: site_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: List of FAQs
+    post:
+      tags: [FAQs]
+      summary: Create FAQ
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FAQ'
+      responses:
+        '201':
+          description: FAQ created
+
+  /api/v1/admin/faqs/{id}:
+    put:
+      tags: [FAQs]
+      summary: Update FAQ
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FAQ'
+      responses:
+        '200':
+          description: FAQ updated
+    delete:
+      tags: [FAQs]
+      summary: Delete FAQ
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: FAQ deleted
+
+  # ─── Navigation ───────────────────────────────────────────────────────────
+  /api/v1/admin/navigation:
+    get:
+      tags: [Navigation]
+      summary: List navigation menus
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: site_id
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: List of navigation menus with items
+
+  /api/v1/admin/navigation/{menuId}/items:
+    post:
+      tags: [Navigation]
+      summary: Create navigation item
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: menuId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NavigationItem'
+      responses:
+        '201':
+          description: Navigation item created
+
+  /api/v1/admin/navigation/items/{id}:
+    put:
+      tags: [Navigation]
+      summary: Update navigation item
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NavigationItem'
+      responses:
+        '200':
+          description: Navigation item updated
+    delete:
+      tags: [Navigation]
+      summary: Delete navigation item
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Navigation item deleted
+
+  # ─── Media ────────────────────────────────────────────────────────────────
+  /api/v1/admin/media:
+    get:
+      tags: [Media]
+      summary: List media files
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: site_id
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: page
+          in: query
+          schema:
+            type: integer
+        - name: per_page
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Paginated list of media files
+
+  /api/v1/admin/media/upload:
+    post:
+      tags: [Media]
+      summary: Upload media file
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file, site_id]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                site_id:
+                  type: string
+                  format: uuid
+                folder:
+                  type: string
+                alt_text:
+                  type: string
+      responses:
+        '201':
+          description: File uploaded successfully
+
+  /api/v1/admin/media/{id}:
+    put:
+      tags: [Media]
+      summary: Update media metadata
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                alt_text:
+                  type: string
+                caption:
+                  type: string
+      responses:
+        '200':
+          description: Media updated
+    delete:
+      tags: [Media]
+      summary: Delete media file
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Media deleted
+
+  # ─── Users ────────────────────────────────────────────────────────────────
+  /api/v1/admin/users:
+    get:
+      tags: [Users]
+      summary: List users
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: role
+          in: query
+          schema:
+            $ref: '#/components/schemas/UserRole'
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/UserStatus'
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of users
+    post:
+      tags: [Users]
+      summary: Create user
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUserInput'
+      responses:
+        '201':
+          description: User created
+        '409':
+          description: User with this email already exists
+
+  /api/v1/admin/users/{id}:
+    get:
+      tags: [Users]
+      summary: Get user by ID
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: User details
+        '404':
+          description: User not found
+    put:
+      tags: [Users]
+      summary: Update user
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserInput'
+      responses:
+        '200':
+          description: User updated
+    delete:
+      tags: [Users]
+      summary: Delete user (super_admin only)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: User deleted
+
+  # ─── Audit Logs ───────────────────────────────────────────────────────────
+  /api/v1/admin/audit-logs:
+    get:
+      tags: [AuditLogs]
+      summary: List audit logs
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: site_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: action
+          in: query
+          schema:
+            type: string
+            example: create
+        - name: resource_type
+          in: query
+          schema:
+            type: string
+            example: page
+        - name: page
+          in: query
+          schema:
+            type: integer
+        - name: per_page
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Paginated list of audit logs

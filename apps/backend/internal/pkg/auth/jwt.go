@@ -17,7 +17,7 @@ type JWTManager struct {
 	refreshSecret []byte
 	accessExpiry  time.Duration
 	refreshExpiry time.Duration
-	issuer       string
+	issuer        string
 }
 
 // Claims represents the JWT claims

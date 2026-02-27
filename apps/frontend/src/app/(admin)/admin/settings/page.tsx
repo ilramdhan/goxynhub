@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import apiClient, { extractApiError } from "@/lib/api/client";
+import apiClient from "@/lib/api/client";
 import type { ApiResponse, SiteSetting } from "@/types/api.types";
 
 const SITE_ID = process.env.NEXT_PUBLIC_DEFAULT_SITE_ID || "";

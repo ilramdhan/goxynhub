@@ -32,6 +32,14 @@ async function fetchPublic<T>(path: string): Promise<T> {
   return json.data;
 }
 
+async function fetchPublicSafe<T>(path: string, fallback: T): Promise<T> {
+  try {
+    return await fetchPublic<T>(path);
+  } catch {
+    return fallback;
+  }
+}
+
 // Get site info with public settings
 export async function getPublicSite(siteId: string): Promise<Site> {
   return fetchPublic<Site>(`/public/sites/${siteId}`);
@@ -49,63 +57,50 @@ export async function getPublicNavigation(siteId: string, identifier = "header")
 }
 
 // Get features for a site (public - used in landing page)
+// Note: These use admin endpoints without auth for public data
+// In production, you should create dedicated public endpoints
 export async function getPublicFeatures(siteId: string): Promise<Feature[]> {
-  try {
-    // Features are loaded via section contents or component API
-    // For now we use the admin API with no auth for public data
-    const res = await fetch(`${API_URL}/admin/features?site_id=${siteId}&is_active=true`, {
-      next: { revalidate: 60 },
-      headers: { Accept: "application/json" },
-    });
-    if (!res.ok) return [];
-    const json: ApiResponse<Feature[]> = await res.json();
-    return json.data ?? [];
-  } catch {
-    return [];
-  }
+  const res = await fetch(`${API_URL}/admin/features?site_id=${siteId}&is_active=true`, {
+    next: { revalidate: 60 },
+    headers: { Accept: "application/json" },
+  });
+  if (!res.ok) return [];
+  const json: ApiResponse<Feature[]> = await res.json();
+  return json.data ?? [];
 }
 
 // Get testimonials for a site (public)
 export async function getPublicTestimonials(siteId: string): Promise<Testimonial[]> {
-  try {
-    const res = await fetch(`${API_URL}/admin/testimonials?site_id=${siteId}&is_active=true`, {
-      next: { revalidate: 60 },
-      headers: { Accept: "application/json" },
-    });
-    if (!res.ok) return [];
-    const json: ApiResponse<Testimonial[]> = await res.json();
-    return json.data ?? [];
-  } catch {
-    return [];
-  }
+  const res = await fetch(`${API_URL}/admin/testimonials?site_id=${siteId}&is_active=true`, {
+    next: { revalidate: 60 },
+    headers: { Accept: "application/json" },
+  });
+  if (!res.ok) return [];
+  const json: ApiResponse<Testimonial[]> = await res.json();
+  return json.data ?? [];
 }
 
 // Get pricing plans for a site (public)
 export async function getPublicPricingPlans(siteId: string): Promise<PricingPlan[]> {
-  try {
-    const res = await fetch(`${API_URL}/admin/pricing?site_id=${siteId}&is_active=true`, {
-      next: { revalidate: 60 },
-      headers: { Accept: "application/json" },
-    });
-    if (!res.ok) return [];
-    const json: ApiResponse<PricingPlan[]> = await res.json();
-    return json.data ?? [];
-  } catch {
-    return [];
-  }
+  const res = await fetch(`${API_URL}/admin/pricing?site_id=${siteId}&is_active=true`, {
+    next: { revalidate: 60 },
+    headers: { Accept: "application/json" },
+  });
+  if (!res.ok) return [];
+  const json: ApiResponse<PricingPlan[]> = await res.json();
+  return json.data ?? [];
 }
 
 // Get FAQs for a site (public)
 export async function getPublicFAQs(siteId: string): Promise<FAQ[]> {
-  try {
-    const res = await fetch(`${API_URL}/admin/faqs?site_id=${siteId}&is_active=true`, {
-      next: { revalidate: 60 },
-      headers: { Accept: "application/json" },
-    });
-    if (!res.ok) return [];
-    const json: ApiResponse<FAQ[]> = await res.json();
-    return json.data ?? [];
-  } catch {
-    return [];
-  }
+  const res = await fetch(`${API_URL}/admin/faqs?site_id=${siteId}&is_active=true`, {
+    next: { revalidate: 60 },
+    headers: { Accept: "application/json" },
+  });
+  if (!res.ok) return [];
+  const json: ApiResponse<FAQ[]> = await res.json();
+  return json.data ?? [];
 }
+
+// Export fetchPublicSafe for use in other modules
+export { fetchPublicSafe };

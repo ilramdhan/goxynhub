@@ -212,7 +212,7 @@ function PricingFormModal({
       is_custom: form.is_custom,
       is_active: form.is_active,
       sort_order: form.sort_order,
-      features: features as any,
+      features: features,
     });
   };
 

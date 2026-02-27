@@ -15,11 +15,14 @@ import (
 
 // Dependencies holds all handler dependencies
 type Dependencies struct {
-	AuthHandler *handler.AuthHandler
-	PageHandler *handler.PageHandler
-	JWTManager  *auth.JWTManager
-	Config      *config.Config
-	Logger      zerolog.Logger
+	AuthHandler      *handler.AuthHandler
+	PageHandler      *handler.PageHandler
+	SiteHandler      *handler.SiteHandler
+	UserHandler      *handler.UserHandler
+	ComponentHandler *handler.ComponentHandler
+	JWTManager       *auth.JWTManager
+	Config           *config.Config
+	Logger           zerolog.Logger
 }
 
 // Setup configures and returns the Gin router
@@ -62,9 +65,17 @@ func Setup(deps *Dependencies) *gin.Engine {
 		public.Use(middleware.RateLimiter(deps.Config.RateLimit.Requests))
 	}
 	{
+		// Site info (for frontend to get site settings, SEO, etc.)
+		public.GET("/sites/:id", deps.SiteHandler.GetPublicSiteByID)
+		public.GET("/site/:slug", deps.SiteHandler.GetPublicSite)
+
 		// Pages
 		public.GET("/pages/:slug", deps.PageHandler.GetPublicPage)
-		public.GET("/pages", deps.PageHandler.GetPublicPage) // homepage (no slug)
+		public.GET("/pages", deps.PageHandler.GetPublicPage) // homepage
+
+		// Navigation
+		public.GET("/navigation/:siteId/:identifier", deps.ComponentHandler.GetNavigation)
+		public.GET("/navigation/:siteId", deps.ComponentHandler.GetNavigation)
 	}
 
 	// ─── Auth Routes ──────────────────────────────────────────────────────────
@@ -90,10 +101,24 @@ func Setup(deps *Dependencies) *gin.Engine {
 	admin := v1.Group("/admin")
 	admin.Use(middleware.AuthMiddleware(deps.JWTManager))
 	if deps.Config.RateLimit.Enabled {
-		admin.Use(middleware.RateLimiter(200)) // Higher limit for admin
+		admin.Use(middleware.RateLimiter(200))
 	}
 	{
-		// Pages (Editor and above)
+		// ── Sites (Admin+) ──────────────────────────────────────────────────
+		sites := admin.Group("/sites")
+		sites.Use(middleware.RequireRole(domain.RoleAdmin))
+		{
+			sites.GET("", deps.SiteHandler.ListSites)
+			sites.POST("", deps.SiteHandler.CreateSite)
+			sites.GET("/:id", deps.SiteHandler.GetSite)
+			sites.PUT("/:id", deps.SiteHandler.UpdateSite)
+			sites.DELETE("/:id", middleware.RequireRole(domain.RoleSuperAdmin), deps.SiteHandler.DeleteSite)
+			sites.GET("/:id/settings", deps.SiteHandler.GetSettings)
+			sites.PUT("/:id/settings", deps.SiteHandler.BulkUpdateSettings)
+			sites.PUT("/:id/settings/:key", deps.SiteHandler.UpdateSetting)
+		}
+
+		// ── Pages (Editor+) ─────────────────────────────────────────────────
 		pages := admin.Group("/pages")
 		pages.Use(middleware.RequireRole(domain.RoleEditor))
 		{
@@ -108,7 +133,7 @@ func Setup(deps *Dependencies) *gin.Engine {
 			pages.POST("/:id/sections", deps.PageHandler.CreateSection)
 		}
 
-		// Sections (Editor and above)
+		// ── Sections (Editor+) ──────────────────────────────────────────────
 		sections := admin.Group("/sections")
 		sections.Use(middleware.RequireRole(domain.RoleEditor))
 		{
@@ -120,11 +145,89 @@ func Setup(deps *Dependencies) *gin.Engine {
 			sections.POST("/:id/contents/bulk", deps.PageHandler.BulkUpsertContents)
 		}
 
-		// Contents (Editor and above)
+		// ── Contents (Editor+) ──────────────────────────────────────────────
 		contents := admin.Group("/contents")
 		contents.Use(middleware.RequireRole(domain.RoleEditor))
 		{
 			contents.DELETE("/:id", deps.PageHandler.DeleteContent)
+		}
+
+		// ── Features (Editor+) ──────────────────────────────────────────────
+		features := admin.Group("/features")
+		features.Use(middleware.RequireRole(domain.RoleEditor))
+		{
+			features.GET("", deps.ComponentHandler.ListFeatures)
+			features.POST("", deps.ComponentHandler.CreateFeature)
+			features.PUT("/:id", deps.ComponentHandler.UpdateFeature)
+			features.DELETE("/:id", deps.ComponentHandler.DeleteFeature)
+		}
+
+		// ── Testimonials (Editor+) ──────────────────────────────────────────
+		testimonials := admin.Group("/testimonials")
+		testimonials.Use(middleware.RequireRole(domain.RoleEditor))
+		{
+			testimonials.GET("", deps.ComponentHandler.ListTestimonials)
+			testimonials.POST("", deps.ComponentHandler.CreateTestimonial)
+			testimonials.PUT("/:id", deps.ComponentHandler.UpdateTestimonial)
+			testimonials.DELETE("/:id", deps.ComponentHandler.DeleteTestimonial)
+		}
+
+		// ── Pricing (Editor+) ───────────────────────────────────────────────
+		pricing := admin.Group("/pricing")
+		pricing.Use(middleware.RequireRole(domain.RoleEditor))
+		{
+			pricing.GET("", deps.ComponentHandler.ListPricingPlans)
+			pricing.POST("", deps.ComponentHandler.CreatePricingPlan)
+			pricing.PUT("/:id", deps.ComponentHandler.UpdatePricingPlan)
+			pricing.DELETE("/:id", deps.ComponentHandler.DeletePricingPlan)
+		}
+
+		// ── FAQs (Editor+) ──────────────────────────────────────────────────
+		faqs := admin.Group("/faqs")
+		faqs.Use(middleware.RequireRole(domain.RoleEditor))
+		{
+			faqs.GET("", deps.ComponentHandler.ListFAQs)
+			faqs.POST("", deps.ComponentHandler.CreateFAQ)
+			faqs.PUT("/:id", deps.ComponentHandler.UpdateFAQ)
+			faqs.DELETE("/:id", deps.ComponentHandler.DeleteFAQ)
+		}
+
+		// ── Navigation (Editor+) ────────────────────────────────────────────
+		navigation := admin.Group("/navigation")
+		navigation.Use(middleware.RequireRole(domain.RoleEditor))
+		{
+			navigation.GET("", deps.ComponentHandler.ListNavigation)
+			navigation.POST("/:menuId/items", deps.ComponentHandler.CreateNavigationItem)
+			navigation.PUT("/items/:id", deps.ComponentHandler.UpdateNavigationItem)
+			navigation.DELETE("/items/:id", deps.ComponentHandler.DeleteNavigationItem)
+		}
+
+		// ── Media (Editor+) ─────────────────────────────────────────────────
+		media := admin.Group("/media")
+		media.Use(middleware.RequireRole(domain.RoleEditor))
+		{
+			media.GET("", deps.ComponentHandler.ListMedia)
+			media.POST("/upload", deps.ComponentHandler.UploadMedia)
+			media.PUT("/:id", deps.ComponentHandler.UpdateMedia)
+			media.DELETE("/:id", deps.ComponentHandler.DeleteMedia)
+		}
+
+		// ── Users (Admin+) ──────────────────────────────────────────────────
+		users := admin.Group("/users")
+		users.Use(middleware.RequireRole(domain.RoleAdmin))
+		{
+			users.GET("", deps.UserHandler.ListUsers)
+			users.POST("", deps.UserHandler.CreateUser)
+			users.GET("/:id", deps.UserHandler.GetUser)
+			users.PUT("/:id", deps.UserHandler.UpdateUser)
+			users.DELETE("/:id", middleware.RequireRole(domain.RoleSuperAdmin), deps.UserHandler.DeleteUser)
+		}
+
+		// ── Audit Logs (Admin+) ─────────────────────────────────────────────
+		auditLogs := admin.Group("/audit-logs")
+		auditLogs.Use(middleware.RequireRole(domain.RoleAdmin))
+		{
+			auditLogs.GET("", deps.ComponentHandler.ListAuditLogs)
 		}
 	}
 

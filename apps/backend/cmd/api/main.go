@@ -55,22 +55,39 @@ func main() {
 	// Initialize repositories
 	userRepo := repository.NewUserRepository(db)
 	pageRepo := repository.NewPageRepository(db)
+	siteRepo := repository.NewSiteRepository(db)
+	compRepo := repository.NewComponentRepository(db)
 
 	// Initialize services
 	authSvc := service.NewAuthService(userRepo, jwtManager, appLogger)
 	pageSvc := service.NewPageService(pageRepo, appLogger)
+	siteSvc := service.NewSiteService(siteRepo, appLogger)
 
 	// Initialize handlers
 	authHandler := handler.NewAuthHandler(authSvc, cfg, appLogger)
 	pageHandler := handler.NewPageHandler(pageSvc, appLogger)
+	siteHandler := handler.NewSiteHandler(siteSvc, appLogger)
+	userHandler := handler.NewUserHandler(userRepo, appLogger, cfg.Security.BcryptCost)
+	componentHandler := handler.NewComponentHandler(
+		compRepo,
+		cfg.Supabase.URL,
+		cfg.Supabase.StorageBucket,
+		cfg.Supabase.ServiceKey,
+		cfg.Security.MaxUploadSize,
+		cfg.Security.AllowedMimeTypes,
+		appLogger,
+	)
 
 	// Setup router
 	deps := &router.Dependencies{
-		AuthHandler: authHandler,
-		PageHandler: pageHandler,
-		JWTManager:  jwtManager,
-		Config:      cfg,
-		Logger:      appLogger,
+		AuthHandler:      authHandler,
+		PageHandler:      pageHandler,
+		SiteHandler:      siteHandler,
+		UserHandler:      userHandler,
+		ComponentHandler: componentHandler,
+		JWTManager:       jwtManager,
+		Config:           cfg,
+		Logger:           appLogger,
 	}
 	r := router.Setup(deps)
 

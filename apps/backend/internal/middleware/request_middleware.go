@@ -45,7 +45,8 @@ func StructuredLogger(logger zerolog.Logger) gin.HandlerFunc {
 		statusCode := c.Writer.Status()
 		clientIP := c.ClientIP()
 		method := c.Request.Method
-		requestID, _ := c.Get("request_id")
+		requestIDVal, _ := c.Get("request_id")
+		requestIDStr, _ := requestIDVal.(string)
 
 		if raw != "" {
 			path = path + "?" + raw
@@ -59,7 +60,7 @@ func StructuredLogger(logger zerolog.Logger) gin.HandlerFunc {
 		}
 
 		event.
-			Str("request_id", requestID.(string)).
+			Str("request_id", requestIDStr).
 			Str("method", method).
 			Str("path", path).
 			Int("status", statusCode).

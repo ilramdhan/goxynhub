@@ -67,8 +67,8 @@ const defaultFAQs: FAQ[] = [
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export function LandingPage({
-  page,
-  sections,
+  page: _page,
+  sections: _sections,
   sectionContents,
   features,
   testimonials,

@@ -35,7 +35,7 @@ func NewJWTManager(accessSecret, refreshSecret string, accessExpiry, refreshExpi
 		refreshSecret: []byte(refreshSecret),
 		accessExpiry:  accessExpiry,
 		refreshExpiry: refreshExpiry,
-		issuer:       issuer,
+		issuer:        issuer,
 	}
 }
 

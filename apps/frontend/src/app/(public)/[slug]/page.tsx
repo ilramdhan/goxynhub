@@ -11,6 +11,7 @@ import {
 } from "@/lib/api/public.api";
 import { contentsToMap } from "@/types/api.types";
 import { LandingPage } from "@/components/landing/LandingPage";
+import { DynamicPageRenderer } from "@/components/landing/DynamicPageRenderer";
 
 const SITE_ID = process.env.NEXT_PUBLIC_DEFAULT_SITE_ID || "";
 
@@ -42,6 +43,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
         if (s.value) settingsMap[s.key] = s.value;
       });
     }
+    if (siteData?.name && !settingsMap.site_title) settingsMap.site_title = siteData.name;
 
     if (!pageData) {
       return { title: "Page Not Found" };
@@ -74,6 +76,17 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       description: "Build dynamic landing pages",
     };
   }
+}
+
+// Determine if a page should use the full landing page layout
+// (has landing page sections like hero, features, pricing, testimonials)
+function isLandingPageTemplate(template: string | null, sections: { type: string }[]): boolean {
+  if (template === "landing") return true;
+  if (template && template !== "default" && template !== "page") return false;
+
+  // Check if page has landing page sections
+  const landingTypes = new Set(["hero", "features", "pricing", "testimonials", "faq", "stats", "logos", "newsletter"]);
+  return sections.some((s) => landingTypes.has(s.type));
 }
 
 export default async function DynamicPage({ params }: PageProps) {
@@ -125,10 +138,15 @@ export default async function DynamicPage({ params }: PageProps) {
   if (siteData?.name && !settingsMap.site_title) settingsMap.site_title = siteData.name;
   if (siteData?.description && !settingsMap.site_description) settingsMap.site_description = siteData.description;
 
-  // Build content maps for each section
-  const sectionContents: Record<string, Record<string, string>> = {};
-  if (pageData?.sections) {
-    for (const section of pageData.sections) {
+  const pageSections = pageData?.sections || [];
+
+  // Determine rendering mode
+  const useLandingLayout = isLandingPageTemplate(pageData?.template || null, pageSections);
+
+  if (useLandingLayout) {
+    // Build content maps for each section (for landing page)
+    const sectionContents: Record<string, Record<string, string>> = {};
+    for (const section of pageSections) {
       if (section.identifier && section.contents) {
         const contentMap = contentsToMap(section.contents);
         sectionContents[section.identifier] = Object.fromEntries(
@@ -136,13 +154,28 @@ export default async function DynamicPage({ params }: PageProps) {
         );
       }
     }
+
+    return (
+      <LandingPage
+        page={pageData}
+        sections={pageSections}
+        sectionContents={sectionContents}
+        features={featuresData}
+        testimonials={testimonialsData}
+        pricingPlans={pricingData}
+        faqs={faqsData}
+        navigation={navData}
+        footerNavigation={footerNavData}
+        settings={settingsMap}
+      />
+    );
   }
 
+  // Use dynamic page renderer for content pages (about, privacy, terms, etc.)
   return (
-    <LandingPage
+    <DynamicPageRenderer
       page={pageData}
-      sections={pageData?.sections || []}
-      sectionContents={sectionContents}
+      sections={pageSections}
       features={featuresData}
       testimonials={testimonialsData}
       pricingPlans={pricingData}

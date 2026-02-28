@@ -520,6 +520,67 @@ func (h *ComponentHandler) GetNavigation(c *gin.Context) {
 	response.OK(c, menu)
 }
 
+// CreateNavigationMenu handles POST /api/v1/admin/navigation
+func (h *ComponentHandler) CreateNavigationMenu(c *gin.Context) {
+	var menu domain.NavigationMenu
+	if err := c.ShouldBindJSON(&menu); err != nil {
+		response.BadRequest(c, "invalid request body")
+		return
+	}
+
+	menu.ID = uuid.New()
+
+	if err := h.compRepo.CreateNavigationMenu(c.Request.Context(), &menu); err != nil {
+		response.InternalError(c, err)
+		return
+	}
+
+	response.Created(c, menu)
+}
+
+// UpdateNavigationMenu handles PUT /api/v1/admin/navigation/:id
+func (h *ComponentHandler) UpdateNavigationMenu(c *gin.Context) {
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		response.BadRequest(c, "invalid menu ID")
+		return
+	}
+
+	var menu domain.NavigationMenu
+	if err := c.ShouldBindJSON(&menu); err != nil {
+		response.BadRequest(c, "invalid request body")
+		return
+	}
+	menu.ID = id
+
+	if err := h.compRepo.UpdateNavigationMenu(c.Request.Context(), &menu); err != nil {
+		response.InternalError(c, err)
+		return
+	}
+
+	response.OK(c, menu)
+}
+
+// DeleteNavigationMenu handles DELETE /api/v1/admin/navigation/:id
+func (h *ComponentHandler) DeleteNavigationMenu(c *gin.Context) {
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		response.BadRequest(c, "invalid menu ID")
+		return
+	}
+
+	if err := h.compRepo.DeleteNavigationMenu(c.Request.Context(), id); err != nil {
+		if errors.Is(err, domain.ErrNotFound) {
+			response.NotFound(c, "navigation menu not found")
+			return
+		}
+		response.InternalError(c, err)
+		return
+	}
+
+	response.NoContent(c)
+}
+
 // ListNavigation handles GET /api/v1/admin/navigation
 func (h *ComponentHandler) ListNavigation(c *gin.Context) {
 	siteIDStr := c.Query("site_id")

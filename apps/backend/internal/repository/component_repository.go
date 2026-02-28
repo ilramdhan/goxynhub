@@ -45,6 +45,9 @@ type ComponentRepository interface {
 	FindMenusBySiteID(ctx context.Context, siteID uuid.UUID) ([]*domain.NavigationMenu, error)
 	FindMenuByIdentifier(ctx context.Context, siteID uuid.UUID, identifier string) (*domain.NavigationMenu, error)
 	FindMenuByID(ctx context.Context, id uuid.UUID) (*domain.NavigationMenu, error)
+	CreateNavigationMenu(ctx context.Context, menu *domain.NavigationMenu) error
+	UpdateNavigationMenu(ctx context.Context, menu *domain.NavigationMenu) error
+	DeleteNavigationMenu(ctx context.Context, id uuid.UUID) error
 	FindItemsByMenuID(ctx context.Context, menuID uuid.UUID) ([]*domain.NavigationItem, error)
 	CreateNavigationItem(ctx context.Context, item *domain.NavigationItem) error
 	UpdateNavigationItem(ctx context.Context, item *domain.NavigationItem) error
@@ -485,6 +488,48 @@ func (r *componentRepository) FindItemsByMenuID(ctx context.Context, menuID uuid
 		return nil, fmt.Errorf("componentRepository.FindItemsByMenuID: %w", err)
 	}
 	return items, nil
+}
+
+func (r *componentRepository) CreateNavigationMenu(ctx context.Context, menu *domain.NavigationMenu) error {
+	query := `INSERT INTO navigation_menus (id, site_id, name, identifier, description, is_active, metadata)
+		VALUES (:id, :site_id, :name, :identifier, :description, :is_active, :metadata)
+		RETURNING created_at, updated_at`
+	rows, err := r.db.NamedQueryContext(ctx, query, menu)
+	if err != nil {
+		return fmt.Errorf("componentRepository.CreateNavigationMenu: %w", err)
+	}
+	defer rows.Close()
+	if rows.Next() {
+		rows.Scan(&menu.CreatedAt, &menu.UpdatedAt)
+	}
+	return nil
+}
+
+func (r *componentRepository) UpdateNavigationMenu(ctx context.Context, menu *domain.NavigationMenu) error {
+	query := `UPDATE navigation_menus SET name=:name, identifier=:identifier, description=:description,
+		is_active=:is_active, metadata=:metadata, updated_at=NOW()
+		WHERE id=:id RETURNING updated_at`
+	rows, err := r.db.NamedQueryContext(ctx, query, menu)
+	if err != nil {
+		return fmt.Errorf("componentRepository.UpdateNavigationMenu: %w", err)
+	}
+	defer rows.Close()
+	if rows.Next() {
+		rows.Scan(&menu.UpdatedAt)
+	}
+	return nil
+}
+
+func (r *componentRepository) DeleteNavigationMenu(ctx context.Context, id uuid.UUID) error {
+	result, err := r.db.ExecContext(ctx, `DELETE FROM navigation_menus WHERE id=$1`, id)
+	if err != nil {
+		return fmt.Errorf("componentRepository.DeleteNavigationMenu: %w", err)
+	}
+	rows, _ := result.RowsAffected()
+	if rows == 0 {
+		return domain.ErrNotFound
+	}
+	return nil
 }
 
 func (r *componentRepository) CreateNavigationItem(ctx context.Context, item *domain.NavigationItem) error {

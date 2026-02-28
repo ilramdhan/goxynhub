@@ -226,6 +226,9 @@ func Setup(deps *Dependencies) *gin.Engine {
 		navigation.Use(middleware.RequireRole(domain.RoleEditor))
 		{
 			navigation.GET("", deps.ComponentHandler.ListNavigation)
+			navigation.POST("", deps.ComponentHandler.CreateNavigationMenu)
+			navigation.PUT("/:id", deps.ComponentHandler.UpdateNavigationMenu)
+			navigation.DELETE("/:id", deps.ComponentHandler.DeleteNavigationMenu)
 			navigation.POST("/:menuId/items", deps.ComponentHandler.CreateNavigationItem)
 			navigation.PUT("/items/:id", deps.ComponentHandler.UpdateNavigationItem)
 			navigation.DELETE("/items/:id", deps.ComponentHandler.DeleteNavigationItem)

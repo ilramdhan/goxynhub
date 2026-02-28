@@ -90,6 +90,11 @@ export default async function HomePage() {
       if (s.value) settingsMap[s.key] = s.value;
     });
   }
+  // Also include site-level fields in settings map
+  if (siteData?.logo_url) settingsMap.logo_url = siteData.logo_url;
+  if (siteData?.favicon_url) settingsMap.favicon_url = siteData.favicon_url;
+  if (siteData?.name && !settingsMap.site_title) settingsMap.site_title = siteData.name;
+  if (siteData?.description && !settingsMap.site_description) settingsMap.site_description = siteData.description;
 
   // Build content maps for each section
   const sectionContents: Record<string, Record<string, string>> = {};

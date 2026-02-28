@@ -99,6 +99,12 @@ func Setup(deps *Dependencies) *gin.Engine {
 		// Navigation
 		public.GET("/navigation/:siteId/:identifier", deps.ComponentHandler.GetNavigation)
 		public.GET("/navigation/:siteId", deps.ComponentHandler.GetNavigation)
+
+		// Public component endpoints (no auth required for landing page rendering)
+		public.GET("/features", deps.ComponentHandler.ListFeatures)
+		public.GET("/testimonials", deps.ComponentHandler.ListTestimonials)
+		public.GET("/pricing", deps.ComponentHandler.ListPricingPlans)
+		public.GET("/faqs", deps.ComponentHandler.ListFAQs)
 	}
 
 	// ─── Auth Routes ──────────────────────────────────────────────────────────

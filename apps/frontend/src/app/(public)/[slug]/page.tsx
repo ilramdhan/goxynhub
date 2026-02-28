@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import {
   getPublicPage,
   getPublicFeatures,
@@ -20,9 +20,16 @@ interface PageProps {
 
 // Generate dynamic metadata from CMS
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { slug } = params;
+
+  // Redirect home slug to root
+  if (slug === "home") {
+    return { title: "Home" };
+  }
+
   try {
     const [page, site] = await Promise.allSettled([
-      getPublicPage(SITE_ID, params.slug),
+      getPublicPage(SITE_ID, slug),
       getPublicSite(SITE_ID),
     ]);
 
@@ -70,10 +77,17 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 export default async function DynamicPage({ params }: PageProps) {
+  const { slug } = params;
+
+  // Redirect /home to root /
+  if (slug === "home") {
+    redirect("/");
+  }
+
   // Fetch all data in parallel
   const [page, features, testimonials, pricingPlans, faqs, headerNav, footerNav, site] =
     await Promise.allSettled([
-      getPublicPage(SITE_ID, params.slug),
+      getPublicPage(SITE_ID, slug),
       getPublicFeatures(SITE_ID),
       getPublicTestimonials(SITE_ID),
       getPublicPricingPlans(SITE_ID),
@@ -105,6 +119,11 @@ export default async function DynamicPage({ params }: PageProps) {
       if (s.value) settingsMap[s.key] = s.value;
     });
   }
+  // Also include site-level fields in settings map
+  if (siteData?.logo_url) settingsMap.logo_url = siteData.logo_url;
+  if (siteData?.favicon_url) settingsMap.favicon_url = siteData.favicon_url;
+  if (siteData?.name && !settingsMap.site_title) settingsMap.site_title = siteData.name;
+  if (siteData?.description && !settingsMap.site_description) settingsMap.site_description = siteData.description;
 
   // Build content maps for each section
   const sectionContents: Record<string, Record<string, string>> = {};

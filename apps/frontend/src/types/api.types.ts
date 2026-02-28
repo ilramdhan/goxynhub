@@ -248,6 +248,8 @@ export interface Feature {
   link_text: string | null;
   is_active: boolean;
   sort_order: number;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Testimonial {
@@ -265,6 +267,8 @@ export interface Testimonial {
   is_featured: boolean;
   is_active: boolean;
   sort_order: number;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface PricingPlan {
@@ -286,6 +290,8 @@ export interface PricingPlan {
   features_excluded: string[];
   is_active: boolean;
   sort_order: number;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface FAQ {
@@ -297,6 +303,8 @@ export interface FAQ {
   category: string | null;
   is_active: boolean;
   sort_order: number;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface NavigationMenu {

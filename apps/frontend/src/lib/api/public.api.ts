@@ -56,11 +56,9 @@ export async function getPublicNavigation(siteId: string, identifier = "header")
   return fetchPublic<NavigationMenu>(`/public/navigation/${siteId}/${identifier}`);
 }
 
-// Get features for a site (public - used in landing page)
-// Note: These use admin endpoints without auth for public data
-// In production, you should create dedicated public endpoints
+// Get features for a site (public - uses dedicated public endpoint)
 export async function getPublicFeatures(siteId: string): Promise<Feature[]> {
-  const res = await fetch(`${API_URL}/admin/features?site_id=${siteId}&is_active=true`, {
+  const res = await fetch(`${API_URL}/public/features?site_id=${siteId}&is_active=true`, {
     next: { revalidate: 60 },
     headers: { Accept: "application/json" },
   });
@@ -71,7 +69,7 @@ export async function getPublicFeatures(siteId: string): Promise<Feature[]> {
 
 // Get testimonials for a site (public)
 export async function getPublicTestimonials(siteId: string): Promise<Testimonial[]> {
-  const res = await fetch(`${API_URL}/admin/testimonials?site_id=${siteId}&is_active=true`, {
+  const res = await fetch(`${API_URL}/public/testimonials?site_id=${siteId}&is_active=true`, {
     next: { revalidate: 60 },
     headers: { Accept: "application/json" },
   });
@@ -82,7 +80,7 @@ export async function getPublicTestimonials(siteId: string): Promise<Testimonial
 
 // Get pricing plans for a site (public)
 export async function getPublicPricingPlans(siteId: string): Promise<PricingPlan[]> {
-  const res = await fetch(`${API_URL}/admin/pricing?site_id=${siteId}&is_active=true`, {
+  const res = await fetch(`${API_URL}/public/pricing?site_id=${siteId}&is_active=true`, {
     next: { revalidate: 60 },
     headers: { Accept: "application/json" },
   });
@@ -93,7 +91,7 @@ export async function getPublicPricingPlans(siteId: string): Promise<PricingPlan
 
 // Get FAQs for a site (public)
 export async function getPublicFAQs(siteId: string): Promise<FAQ[]> {
-  const res = await fetch(`${API_URL}/admin/faqs?site_id=${siteId}&is_active=true`, {
+  const res = await fetch(`${API_URL}/public/faqs?site_id=${siteId}&is_active=true`, {
     next: { revalidate: 60 },
     headers: { Accept: "application/json" },
   });

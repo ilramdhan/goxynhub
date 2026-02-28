@@ -9,28 +9,21 @@ import (
 // APIResponse is the standard API response structure
 type APIResponse struct {
 	Success bool        `json:"success"`
-	Message string      `json:"message"`
+	Message string      `json:"message,omitempty"`
 	Data    interface{} `json:"data,omitempty"`
-	Errors  interface{} `json:"errors,omitempty"`
 	Meta    interface{} `json:"meta,omitempty"`
+	Errors  interface{} `json:"errors,omitempty"`
 }
 
-// ValidationError represents a field validation error
-type ValidationError struct {
-	Field   string `json:"field"`
-	Message string `json:"message"`
-}
-
-// OK sends a 200 OK response
+// OK sends a 200 OK response with data
 func OK(c *gin.Context, data interface{}) {
 	c.JSON(http.StatusOK, APIResponse{
 		Success: true,
-		Message: "success",
 		Data:    data,
 	})
 }
 
-// OKWithMessage sends a 200 OK response with a custom message
+// OKWithMessage sends a 200 OK response with a message and optional data
 func OKWithMessage(c *gin.Context, message string, data interface{}) {
 	c.JSON(http.StatusOK, APIResponse{
 		Success: true,
@@ -39,21 +32,19 @@ func OKWithMessage(c *gin.Context, message string, data interface{}) {
 	})
 }
 
-// OKPaginated sends a 200 OK response with pagination metadata
+// OKPaginated sends a 200 OK response with paginated data
 func OKPaginated(c *gin.Context, data interface{}, meta interface{}) {
 	c.JSON(http.StatusOK, APIResponse{
 		Success: true,
-		Message: "success",
 		Data:    data,
 		Meta:    meta,
 	})
 }
 
-// Created sends a 201 Created response
+// Created sends a 201 Created response with data
 func Created(c *gin.Context, data interface{}) {
 	c.JSON(http.StatusCreated, APIResponse{
 		Success: true,
-		Message: "created successfully",
 		Data:    data,
 	})
 }
@@ -71,20 +62,8 @@ func BadRequest(c *gin.Context, message string) {
 	})
 }
 
-// BadRequestWithErrors sends a 400 Bad Request response with validation errors
-func BadRequestWithErrors(c *gin.Context, message string, errors interface{}) {
-	c.JSON(http.StatusBadRequest, APIResponse{
-		Success: false,
-		Message: message,
-		Errors:  errors,
-	})
-}
-
 // Unauthorized sends a 401 Unauthorized response
 func Unauthorized(c *gin.Context, message string) {
-	if message == "" {
-		message = "authentication required"
-	}
 	c.JSON(http.StatusUnauthorized, APIResponse{
 		Success: false,
 		Message: message,
@@ -93,9 +72,6 @@ func Unauthorized(c *gin.Context, message string) {
 
 // Forbidden sends a 403 Forbidden response
 func Forbidden(c *gin.Context, message string) {
-	if message == "" {
-		message = "access denied"
-	}
 	c.JSON(http.StatusForbidden, APIResponse{
 		Success: false,
 		Message: message,
@@ -104,9 +80,6 @@ func Forbidden(c *gin.Context, message string) {
 
 // NotFound sends a 404 Not Found response
 func NotFound(c *gin.Context, message string) {
-	if message == "" {
-		message = "resource not found"
-	}
 	c.JSON(http.StatusNotFound, APIResponse{
 		Success: false,
 		Message: message,
@@ -122,10 +95,11 @@ func Conflict(c *gin.Context, message string) {
 }
 
 // UnprocessableEntity sends a 422 Unprocessable Entity response
-func UnprocessableEntity(c *gin.Context, message string) {
+func UnprocessableEntity(c *gin.Context, message string, errors interface{}) {
 	c.JSON(http.StatusUnprocessableEntity, APIResponse{
 		Success: false,
 		Message: message,
+		Errors:  errors,
 	})
 }
 
@@ -139,17 +113,12 @@ func TooManyRequests(c *gin.Context) {
 
 // InternalError sends a 500 Internal Server Error response
 func InternalError(c *gin.Context, err error) {
-	// Log the actual error but don't expose it to the client
+	msg := "an internal error occurred"
+	if err != nil {
+		msg = err.Error()
+	}
 	c.JSON(http.StatusInternalServerError, APIResponse{
 		Success: false,
-		Message: "an internal error occurred",
-	})
-}
-
-// InternalErrorWithMessage sends a 500 Internal Server Error response with a custom message
-func InternalErrorWithMessage(c *gin.Context, message string) {
-	c.JSON(http.StatusInternalServerError, APIResponse{
-		Success: false,
-		Message: message,
+		Message: msg,
 	})
 }

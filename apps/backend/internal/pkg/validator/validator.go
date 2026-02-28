@@ -2,6 +2,7 @@ package validator
 
 import (
 	"fmt"
+	"reflect"
 	"regexp"
 	"strings"
 
@@ -24,12 +25,12 @@ func New() *Validator {
 	v := validator.New()
 
 	// Register custom validators
-	v.RegisterValidation("slug", validateSlug)
-	v.RegisterValidation("hostname", validateHostname)
+	v.RegisterValidation("slug", validateSlug)       //nolint:errcheck
+	v.RegisterValidation("hostname", validateHostname) //nolint:errcheck
 
 	// Use JSON field names instead of struct field names
-	v.RegisterTagNameFunc(func(fld interface{ Tag(string) string }) string {
-		name := strings.SplitN(fld.Tag("json"), ",", 2)[0]
+	v.RegisterTagNameFunc(func(fld reflect.StructField) string {
+		name := strings.SplitN(fld.Tag.Get("json"), ",", 2)[0]
 		if name == "-" {
 			return ""
 		}

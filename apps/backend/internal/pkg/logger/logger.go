@@ -5,10 +5,9 @@ import (
 	"time"
 
 	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
 )
 
-// Setup initializes the global logger based on configuration
+// Setup configures and returns a zerolog logger
 func Setup(level, format string) zerolog.Logger {
 	// Set log level
 	logLevel, err := zerolog.ParseLevel(level)
@@ -17,12 +16,13 @@ func Setup(level, format string) zerolog.Logger {
 	}
 	zerolog.SetGlobalLevel(logLevel)
 
-	// Set time format
+	// Configure time format
 	zerolog.TimeFieldFormat = time.RFC3339
 
 	var logger zerolog.Logger
-	if format == "console" {
-		// Human-readable output for development
+
+	if format == "console" || format == "pretty" {
+		// Human-readable console output for development
 		logger = zerolog.New(zerolog.ConsoleWriter{
 			Out:        os.Stdout,
 			TimeFormat: time.RFC3339,
@@ -32,16 +32,5 @@ func Setup(level, format string) zerolog.Logger {
 		logger = zerolog.New(os.Stdout).With().Timestamp().Logger()
 	}
 
-	// Set as global logger
-	log.Logger = logger
-
 	return logger
-}
-
-// FromContext extracts the logger from context or returns the global logger
-func FromContext(ctx interface{ Value(key interface{}) interface{} }) zerolog.Logger {
-	if l, ok := ctx.Value("logger").(zerolog.Logger); ok {
-		return l
-	}
-	return log.Logger
 }

@@ -92,13 +92,15 @@ export function LandingPage({
   const displayFAQs = faqs.length > 0 ? faqs : defaultFAQs;
 
   const siteName = settings.site_title || "LandingCMS";
+  const logoUrl = settings.logo_url || null;
+  const logoLetter = siteName.charAt(0).toUpperCase();
 
   return (
     <div className="min-h-screen bg-white">
-      <Header navigation={navigation} siteName={siteName} />
+      <Header navigation={navigation} siteName={siteName} logoUrl={logoUrl} logoLetter={logoLetter} settings={settings} />
       <main>
         <HeroSection content={hero} />
-        <LogosSection />
+        <LogosSection settings={settings} />
         <FeaturesSection content={featuresContent} features={displayFeatures} />
         <StatsSection content={statsContent} />
         <TestimonialsSection content={testimonialsContent} testimonials={displayTestimonials} />
@@ -106,22 +108,45 @@ export function LandingPage({
         <FAQSection content={faqContent} faqs={displayFAQs} />
         <CTASection content={ctaContent} />
       </main>
-      <Footer navigation={footerNavigation} siteName={siteName} settings={settings} />
+      <Footer navigation={footerNavigation} siteName={siteName} settings={settings} logoUrl={logoUrl} logoLetter={logoLetter} />
     </div>
   );
 }
 
 // ─── Header ───────────────────────────────────────────────────────────────────
 
-function Header({ navigation, siteName }: { navigation: NavigationMenu | null; siteName: string }) {
+function Header({
+  navigation,
+  siteName,
+  logoUrl,
+  logoLetter,
+  settings,
+}: {
+  navigation: NavigationMenu | null;
+  siteName: string;
+  logoUrl: string | null;
+  logoLetter: string;
+  settings: Record<string, string>;
+}) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  const navItems = navigation?.items?.filter((i) => i.is_active && i.depth === 0) || [
+  type NavItem = { id: string; label: string; url: string | null; target: string };
+  const navItems: NavItem[] = navigation?.items?.filter((i) => i.is_active && i.depth === 0).map((i) => ({
+    id: i.id,
+    label: i.label,
+    url: i.url,
+    target: i.target,
+  })) || [
     { id: "1", label: "Features", url: "/#features", target: "_self" },
     { id: "2", label: "Pricing", url: "/#pricing", target: "_self" },
     { id: "3", label: "Testimonials", url: "/#testimonials", target: "_self" },
     { id: "4", label: "FAQ", url: "/#faq", target: "_self" },
   ];
+
+  // CTA button text and link from settings
+  const ctaText = settings.header_cta_text || "Get started";
+  const ctaLink = settings.header_cta_link || "/#pricing";
+  const signInText = settings.header_signin_text || "Sign in";
 
   return (
     <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-xl border-b border-gray-100">
@@ -129,9 +154,14 @@ function Header({ navigation, siteName }: { navigation: NavigationMenu | null; s
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2.5">
-            <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center shadow-sm">
-              <span className="text-white font-bold text-sm">L</span>
-            </div>
+            {logoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={logoUrl} alt={siteName} className="w-8 h-8 object-contain rounded-lg" />
+            ) : (
+              <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center shadow-sm">
+                <span className="text-white font-bold text-sm">{logoLetter}</span>
+              </div>
+            )}
             <span className="font-bold text-gray-900 text-lg tracking-tight">{siteName}</span>
           </Link>
 
@@ -151,13 +181,13 @@ function Header({ navigation, siteName }: { navigation: NavigationMenu | null; s
           {/* CTA */}
           <div className="flex items-center gap-3">
             <Link href="/admin/login" className="hidden sm:block text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">
-              Sign in
+              {signInText}
             </Link>
             <Link
-              href="/#pricing"
+              href={ctaLink}
               className="px-4 py-2 bg-gray-900 text-white text-sm font-semibold rounded-lg hover:bg-gray-700 transition-colors shadow-sm"
             >
-              Get started
+              {ctaText}
             </Link>
             <button
               className="md:hidden p-2 text-gray-600 hover:text-gray-900 rounded-lg hover:bg-gray-50"
@@ -313,14 +343,17 @@ function HeroSection({ content }: { content: Record<string, string> }) {
 
 // ─── Logos Section ────────────────────────────────────────────────────────────
 
-function LogosSection() {
-  const logos = ["Stripe", "Vercel", "Notion", "Linear", "Figma", "Loom", "Intercom", "Segment"];
+function LogosSection({ settings }: { settings: Record<string, string> }) {
+  // Parse logos from settings (comma-separated) or use defaults
+  const logosStr = settings.logos_text || "Stripe,Vercel,Notion,Linear,Figma,Loom,Intercom,Segment";
+  const logos = logosStr.split(",").map((l) => l.trim()).filter(Boolean);
+  const logosTitle = settings.logos_title || "Trusted by teams at";
 
   return (
     <section className="py-12 border-y border-gray-100 bg-gray-50/50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <p className="text-center text-sm font-medium text-gray-400 mb-8 uppercase tracking-wider">
-          Trusted by teams at
+          {logosTitle}
         </p>
         <div className="flex flex-wrap justify-center items-center gap-8 sm:gap-12">
           {logos.map((logo) => (
@@ -736,24 +769,38 @@ function Footer({
   navigation,
   siteName,
   settings,
+  logoUrl,
+  logoLetter,
 }: {
   navigation: NavigationMenu | null;
   siteName: string;
   settings: Record<string, string>;
+  logoUrl: string | null;
+  logoLetter: string;
 }) {
   const currentYear = new Date().getFullYear();
   const description = settings.site_description || "The most powerful CMS for creating dynamic landing pages.";
+  const footerCopyright = settings.footer_copyright || `© ${currentYear} ${siteName}. All rights reserved.`;
+  const privacyPolicyUrl = settings.privacy_policy_url || "/privacy";
+  const termsUrl = settings.terms_url || "/terms";
 
-  const footerLinks = navigation?.items?.filter((i) => i.is_active) || [
-    { id: "1", label: "Privacy Policy", url: "/privacy" },
-    { id: "2", label: "Terms of Service", url: "/terms" },
-    { id: "3", label: "Cookie Policy", url: "/cookies" },
+  type FooterLink = { id: string; label: string; url: string | null };
+  const footerLinks: FooterLink[] = navigation?.items?.filter((i) => i.is_active).map((i) => ({
+    id: i.id,
+    label: i.label,
+    url: i.url,
+  })) || [
+    { id: "1", label: "Privacy Policy", url: privacyPolicyUrl },
+    { id: "2", label: "Terms of Service", url: termsUrl },
+    { id: "3", label: "Cookie Policy", url: settings.cookie_policy_url || "/cookies" },
   ];
 
   const socialLinks = [
     settings.social_twitter && { label: "Twitter", href: settings.social_twitter, icon: "𝕏" },
     settings.social_linkedin && { label: "LinkedIn", href: settings.social_linkedin, icon: "in" },
     settings.social_github && { label: "GitHub", href: settings.social_github, icon: "⌥" },
+    settings.social_instagram && { label: "Instagram", href: settings.social_instagram, icon: "📷" },
+    settings.social_youtube && { label: "YouTube", href: settings.social_youtube, icon: "▶" },
   ].filter(Boolean) as { label: string; href: string; icon: string }[];
 
   return (
@@ -763,9 +810,14 @@ function Footer({
           {/* Brand */}
           <div className="md:col-span-2">
             <div className="flex items-center gap-2.5 mb-4">
-              <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">L</span>
-              </div>
+              {logoUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={logoUrl} alt={siteName} className="w-8 h-8 object-contain rounded-lg" />
+              ) : (
+                <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center">
+                  <span className="text-white font-bold text-sm">{logoLetter}</span>
+                </div>
+              )}
               <span className="font-bold text-white text-lg">{siteName}</span>
             </div>
             <p className="text-sm leading-relaxed max-w-xs">{description}</p>
@@ -798,7 +850,7 @@ function Footer({
         </div>
 
         <div className="border-t border-gray-800 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-sm">© {currentYear} {siteName}. All rights reserved.</p>
+          <p className="text-sm">{footerCopyright}</p>
           <div className="flex items-center gap-4">
             {socialLinks.map((link) => (
               <a
